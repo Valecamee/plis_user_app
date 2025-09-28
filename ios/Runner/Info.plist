@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- 📍 Permisos de ubicación -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Necesitamos acceder a tu ubicación para encontrar viajes cercanos y calcular rutas óptimas.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Permitimos el acceso a tu ubicación para mejorar la experiencia de viaje y encontrar opciones de transporte cercanas.</string>
+	
+	<!-- 📞 Permisos de teléfono -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Utilizamos el micrófono para facilitar la comunicación con el conductor durante el viaje.</string>
+	
+	<!-- 📷 Permisos de cámara -->
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceso a la cámara para tomar fotos de tu perfil y documentos de identificación.</string>
 </dict>
 </plist>
