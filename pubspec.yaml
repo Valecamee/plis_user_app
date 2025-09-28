@@ -58,10 +58,6 @@ flutter:
     - assets/icons/map-pin.png
     - assets/icons/icon.png
 
-  
-  assets:
-    - assets/images/
-    - assets/icons/
 
   # fonts:
   #   - family: Manrope

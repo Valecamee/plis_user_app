@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../utils/app_colors.dart';
 
 class GradientButton extends StatelessWidget {
   final String text;
@@ -7,29 +7,26 @@ class GradientButton extends StatelessWidget {
   final bool enabled;
   final double? width;
   final double? height;
-  final List<Color>? colors; 
-
+  final List<Color>? colors; // 👈 nuevo: puedes pasar colores custom
 
   const GradientButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onTap,
     this.enabled = true,
     this.width,
     this.height,
-    this.colors, 
+    this.colors,
   });
-
-  }) : super(key: key);
-
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        height: 56,
+        duration: const Duration(milliseconds: 200),
+        width: width ?? double.infinity,
+        height: height ?? 56,
         decoration: BoxDecoration(
           gradient: enabled
               ? LinearGradient(
@@ -38,13 +35,12 @@ class GradientButton extends StatelessWidget {
             end: Alignment.centerRight,
           )
               : null,
-          color: enabled ? null : Color(0xFFE9ECEF),
+          color: enabled ? null : AppColors.gris300,
           borderRadius: BorderRadius.circular(28),
           boxShadow: enabled
               ? [
             BoxShadow(
-              color: (colors != null ? colors!.first : AppColors.principal)
-                  .withOpacity(0.3), 
+              color: (colors?.first ?? AppColors.principal).withOpacity(0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -55,7 +51,7 @@ class GradientButton extends StatelessWidget {
           child: Text(
             text,
             style: TextStyle(
-              color: enabled ? Colors.white : Color(0xFF666666),
+              color: enabled ? Colors.white : AppColors.gris600,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
