@@ -8,13 +8,13 @@ class LinkText extends StatelessWidget {
   final Color colorText2;
 
   const LinkText({
-    Key? key,
+    super.key,
     required this.onTap,
     required this.text1,
     required this.text2,
     required this.colorText1,
     required this.colorText2,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

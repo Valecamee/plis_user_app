@@ -57,7 +57,7 @@ class AuthService {
           if (e.toString().contains('wrong-password')) {
             throw Exception('Ya tienes una cuenta como conductor con este correo, pero la contraseña es diferente');
           }
-          throw e;
+          rethrow;
         }
       } else {
         // No existe como conductor, crear nueva cuenta

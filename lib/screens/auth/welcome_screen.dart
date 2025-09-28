@@ -85,7 +85,7 @@ class WelcomeScreen extends StatelessWidget {
                 const Spacer(flex: 1),
 
                 // Slogan
-                Column(
+                const Column(
                   children: [
                     Text(
                       "Viajar es",
@@ -115,7 +115,7 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Descripción
-                Column(
+                const Column(
                   children: [
                     Text(
                       "Conecta con conductores verificados",
@@ -127,7 +127,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       "Encuentra viajes seguros y económicos hacia tu destino",
                       style: TextStyle(
