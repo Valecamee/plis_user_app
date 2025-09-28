@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import 'auth/welcome_screen.dart';
+import '../widgets/common/logo.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,11 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo temporal
-              Icon(
-                Icons.directions_car,
-                size: 80,
-                color: Colors.white,
-              ),
+              Logo(),
               SizedBox(height: 20),
               Text(
                 'Plis Usuario',

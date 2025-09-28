@@ -5,13 +5,23 @@ class GradientButton extends StatelessWidget {
   final String text;
   final VoidCallback? onTap;
   final bool enabled;
+  final double? width;
+  final double? height;
+  final List<Color>? colors; 
+
 
   const GradientButton({
     Key? key,
     required this.text,
     required this.onTap,
     this.enabled = true,
+    this.width,
+    this.height,
+    this.colors, 
+  });
+
   }) : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +33,7 @@ class GradientButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: enabled
               ? LinearGradient(
-            colors: [Color(0xFF4ECDC4), Color(0xFF6366F1)],
+            colors: colors ?? [AppColors.principal, AppColors.secundario],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           )
@@ -33,9 +43,10 @@ class GradientButton extends StatelessWidget {
           boxShadow: enabled
               ? [
             BoxShadow(
-              color: Color(0xFF4ECDC4).withOpacity(0.3),
+              color: (colors != null ? colors!.first : AppColors.principal)
+                  .withOpacity(0.3), 
               blurRadius: 12,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ]
               : null,

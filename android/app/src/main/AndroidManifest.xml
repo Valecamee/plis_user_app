@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="plis_user"
+        android:label="Plis"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
