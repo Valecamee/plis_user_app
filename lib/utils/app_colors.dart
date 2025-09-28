@@ -8,7 +8,8 @@ class AppColors {
   static const Color secundario = Color(0xFF6366f1);   // Índigo
   static const Color oceano = Color(0xFF0891b2);       // Cyan
   static const Color verdePlis = Color(0xFF10b981);    // Emerald
-  
+
+
   // Colores de apoyo
   static const Color indigoSuave = Color(0xFFf0f9ff);  // Fondo suave
   static const Color titulo = Color(0xFF1a1a1a);       // Texto principal
