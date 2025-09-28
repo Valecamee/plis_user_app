@@ -50,14 +50,15 @@ class AuthService {
           // Verificar si ya existe como usuario también
           bool existsAsUser = await _checkIfExistsAsUser(user.uid);
           if (existsAsUser) {
-            throw Exception('Ya tienes una cuenta como usuario con este correo');
+            throw Exception(
+                'Ya tienes una cuenta como usuario con este correo');
           }
-
         } catch (e) {
           if (e.toString().contains('wrong-password')) {
-            throw Exception('Ya tienes una cuenta como conductor con este correo, pero la contraseña es diferente');
+            throw Exception(
+                'Ya tienes una cuenta como conductor con este correo, pero la contraseña es diferente');
           }
-          throw e;
+          rethrow;
         }
       } else {
         // No existe como conductor, crear nueva cuenta
@@ -86,7 +87,6 @@ class AuthService {
       await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
 
       return newUser;
-
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
@@ -113,7 +113,8 @@ class AuthService {
   /// Verifica si un UID ya existe en la colección de usuarios
   Future<bool> _checkIfExistsAsUser(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(uid).get();
       return doc.exists;
     } catch (e) {
       print('Error verificando usuario: $e');
@@ -137,16 +138,17 @@ class AuthService {
       if (user == null) throw Exception('Error en autenticación');
 
       // 2. Obtener datos del usuario de Firestore (colección 'users')
-      DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(user.uid).get();
 
       if (!doc.exists) {
-        throw Exception('No tienes una cuenta como usuario. ¿Eres conductor? Regístrate primero como usuario.');
+        throw Exception(
+            'No tienes una cuenta como usuario. ¿Eres conductor? Regístrate primero como usuario.');
       }
 
       // 3. Convertir a UserModel y retornar
       Map<String, dynamic> userData = doc.data() as Map<String, dynamic>;
       return UserModel.fromMap(userData, user.uid);
-
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
@@ -160,13 +162,13 @@ class AuthService {
       final user = currentUser;
       if (user == null) return null;
 
-      DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(user.uid).get();
 
       if (!doc.exists) return null;
 
       Map<String, dynamic> userData = doc.data() as Map<String, dynamic>;
       return UserModel.fromMap(userData, user.uid);
-
     } catch (e) {
       print('Error obteniendo usuario actual: $e');
       return null;

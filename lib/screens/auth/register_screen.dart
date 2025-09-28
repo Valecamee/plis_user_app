@@ -5,7 +5,9 @@ import '../../widgets/common/gradient_button.dart';
 import '../../widgets/common/link_text.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
+import '../../constants/terms_and_conditions.dart';
 import 'login_screen.dart';
+import 'terms_screen.dart';
 import '../home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -29,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _acceptTerms = false; // Nueva variable para términos
 
   @override
   void dispose() {
@@ -44,6 +47,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validar aceptación de términos
+    if (!_acceptTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Debes aceptar los términos y condiciones para continuar'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -74,7 +89,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       }
-
     } catch (e) {
       // Mostrar error
       if (mounted) {
@@ -97,6 +111,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _goToLogin(BuildContext context) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+
+  void _showTermsDialog() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const TermsScreen(),
+      ),
     );
   }
 
@@ -227,7 +249,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Ingresa tu correo';
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                  .hasMatch(value)) {
                                 return 'Correo inválido';
                               }
                               return null;
@@ -287,7 +310,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 });
                               },
                               icon: Icon(
-                                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: AppColors.gris400,
                               ),
                             ),
@@ -312,11 +337,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             suffixIcon: IconButton(
                               onPressed: () {
                                 setState(() {
-                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword;
                                 });
                               },
                               icon: Icon(
-                                _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                                _obscureConfirmPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: AppColors.gris400,
                               ),
                             ),
@@ -331,27 +359,135 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
 
+                          const SizedBox(height: 24),
+
+                          // Checkbox de términos y condiciones
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.gris50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _acceptTerms
+                                    ? AppColors.principal
+                                    : AppColors.gris200,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: Checkbox(
+                                    value: _acceptTerms,
+                                    onChanged: (bool? value) {
+                                      setState(() {
+                                        _acceptTerms = value ?? false;
+                                      });
+                                    },
+                                    activeColor: AppColors.principal,
+                                    checkColor: Colors.white,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _acceptTerms = !_acceptTerms;
+                                      });
+                                    },
+                                    child: RichText(
+                                      text: TextSpan(
+                                        text: 'Acepto los ',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: AppColors.subtitulo,
+                                          height: 1.4,
+                                        ),
+                                        children: [
+                                          WidgetSpan(
+                                            child: GestureDetector(
+                                              onTap: _showTermsDialog,
+                                              child: const Text(
+                                                'términos y condiciones',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: AppColors.principal,
+                                                  fontWeight: FontWeight.w600,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  height: 1.4,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const TextSpan(
+                                            text: ' y la ',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: AppColors.subtitulo,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                          WidgetSpan(
+                                            child: GestureDetector(
+                                              onTap: _showTermsDialog,
+                                              child: const Text(
+                                                'política de privacidad',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: AppColors.principal,
+                                                  fontWeight: FontWeight.w600,
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  height: 1.4,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const TextSpan(
+                                            text: ' de Plis Usuario.',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: AppColors.subtitulo,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                           const SizedBox(height: 32),
 
                           // Botón de registro
                           _isLoading
                               ? Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: AppColors.gris200,
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.principal,
-                                strokeWidth: 2,
-                              ),
-                            ),
-                          )
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.gris200,
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.principal,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                )
                               : GradientButton(
-                            text: 'Crear cuenta',
-                            onTap: _handleRegister,
-                          ),
+                                  text: 'Crear cuenta',
+                                  onTap: _handleRegister,
+                                ),
 
                           const SizedBox(height: 24),
 
