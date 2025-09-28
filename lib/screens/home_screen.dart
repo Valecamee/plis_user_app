@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
 import 'auth/welcome_screen.dart';
+import 'detalle_viaje_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,33 +16,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AuthService _authService = AuthService();
 
-  // Datos simulados
-  final List<Map<String, dynamic>> _misViajesProgramados = [];
-  final List<Map<String, dynamic>> _viajesDisponibles = [
-    {
-      'conductorNombre': 'Carlos',
-      'conductorApellido': 'Rodríguez',
-      'origen': 'Medellín',
-      'destino': 'Bogotá',
-      'fechaViaje': '2025-09-29',
-      'horaViaje': '14:30',
-      'precio': 45000,
-      'plazasDisponibles': 3,
-      'vehiculoPlaca': 'ABC123',
-    },
-    {
-      'conductorNombre': 'María',
-      'conductorApellido': 'González',
-      'origen': 'Medellín',
-      'destino': 'Cartagena',
-      'fechaViaje': '2025-09-30',
-      'horaViaje': '06:00',
-      'precio': 65000,
-      'plazasDisponibles': 2,
-      'vehiculoPlaca': 'XYZ789',
-    },
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -52,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-            (route) => false,
+        (route) => false,
       );
     }
   }
@@ -65,7 +40,11 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.principal, AppColors.secundario, AppColors.gris50],
+            colors: [
+              AppColors.principal,
+              AppColors.secundario,
+              AppColors.gris50
+            ],
             stops: [0.0, 0.3, 1.0],
           ),
         ),
@@ -84,13 +63,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(25),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 2))],
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2))
+                        ],
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(25),
                         child: Container(
                           color: AppColors.principal.withOpacity(0.1),
-                          child: const Icon(Icons.person, color: AppColors.principal, size: 30),
+                          child: const Icon(Icons.person,
+                              color: AppColors.principal, size: 30),
                           // TODO: Reemplazar con Image.network(userPhotoUrl)
                         ),
                       ),
@@ -100,14 +85,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('¡Hola! 👋', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white)),
-                          Text('¿Listo para tu próximo viaje?', style: TextStyle(fontSize: 16, color: Colors.white70)),
+                          Text('¡Hola! 👋',
+                              style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white)),
+                          Text('¿Listo para tu próximo viaje?',
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.white70)),
                         ],
                       ),
                     ),
                     Container(
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                      child: IconButton(onPressed: _handleSignOut, icon: const Icon(Icons.exit_to_app, color: Colors.white)),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12)),
+                      child: IconButton(
+                          onPressed: _handleSignOut,
+                          icon: const Icon(Icons.exit_to_app,
+                              color: Colors.white)),
                     ),
                   ],
                 ),
@@ -116,17 +112,24 @@ class _HomeScreenState extends State<HomeScreen> {
               // Barra de búsqueda
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 2))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2))
+                  ],
                 ),
                 child: TextField(
                   controller: _searchController,
                   decoration: const InputDecoration(
                     hintText: '¿A dónde quieres ir?',
-                    hintStyle: TextStyle(color: AppColors.gris400, fontSize: 16),
+                    hintStyle:
+                        TextStyle(color: AppColors.gris400, fontSize: 16),
                     prefixIcon: Icon(Icons.search, color: AppColors.principal),
                     suffixIcon: Icon(Icons.tune, color: AppColors.gris400),
                     border: InputBorder.none,
@@ -143,7 +146,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: AppColors.gris50,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(32)),
                   ),
                   child: SingleChildScrollView(
                     child: Column(
@@ -156,7 +160,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Mis viajes programados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.titulo)),
+                              Text('Mis viajes programados',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.titulo)),
                             ],
                           ),
                         ),
@@ -169,19 +177,36 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2))
+                            ],
                           ),
                           child: Column(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(color: AppColors.secundario.withOpacity(0.1), borderRadius: BorderRadius.circular(50)),
-                                child: const Icon(Icons.event_note, size: 32, color: AppColors.secundario),
+                                decoration: BoxDecoration(
+                                    color:
+                                        AppColors.secundario.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(50)),
+                                child: const Icon(Icons.event_note,
+                                    size: 32, color: AppColors.secundario),
                               ),
                               const SizedBox(height: 16),
-                              const Text('No tienes viajes programados', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.titulo)),
+                              const Text('No tienes viajes programados',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.titulo)),
                               const SizedBox(height: 8),
-                              const Text('Cuando reserves un viaje aparecerá aquí', style: TextStyle(fontSize: 14, color: AppColors.subtitulo), textAlign: TextAlign.center),
+                              const Text(
+                                  'Cuando reserves un viaje aparecerá aquí',
+                                  style: TextStyle(
+                                      fontSize: 14, color: AppColors.subtitulo),
+                                  textAlign: TextAlign.center),
                             ],
                           ),
                         ),
@@ -194,19 +219,72 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Viajes disponibles', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.titulo)),
+                              Text('Viajes disponibles',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.titulo)),
                             ],
                           ),
                         ),
                         const SizedBox(height: 16),
 
-                        // Lista de viajes disponibles
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: _viajesDisponibles.length,
-                          itemBuilder: (context, index) => _buildViajeCard(_viajesDisponibles[index]),
+                        // Lista de viajes disponibles desde Firestore
+                        StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('viajes')
+                              .orderBy('fechaViaje', descending: true)
+                              .limit(4)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.search_off,
+                                        size: 32, color: AppColors.gris400),
+                                    const SizedBox(height: 16),
+                                    const Text('No hay viajes disponibles',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.titulo)),
+                                  ],
+                                ),
+                              );
+                            }
+                            final viajes = snapshot.data!.docs;
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              itemCount: viajes.length,
+                              itemBuilder: (context, index) {
+                                final viaje = viajes[index].data()
+                                    as Map<String, dynamic>;
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            DetalleViajeScreen(viaje: viaje),
+                                      ),
+                                    );
+                                  },
+                                  child: _buildViajeCard(viaje),
+                                );
+                              },
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 32),
@@ -217,13 +295,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Acciones rápidas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.titulo)),
+                              const Text('Acciones rápidas',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.titulo)),
                               const SizedBox(height: 16),
                               Row(
                                 children: [
-                                  _buildActionCard(Icons.history, 'Historial', 'Viajes anteriores', AppColors.gris600),
+                                  _buildActionCard(Icons.history, 'Historial',
+                                      'Viajes anteriores', AppColors.gris600),
                                   const SizedBox(width: 16),
-                                  _buildActionCard(Icons.pending_actions, 'En curso', 'Viajes activos', AppColors.principal),
+                                  _buildActionCard(
+                                      Icons.pending_actions,
+                                      'En curso',
+                                      'Viajes activos',
+                                      AppColors.principal),
                                 ],
                               ),
                             ],
@@ -244,12 +331,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildViajeCard(Map<String, dynamic> viaje) {
+    String origen = viaje['origen'] ?? 'No programado';
+    String destino = viaje['destino'] ?? 'No programado';
+    String conductorNombre = viaje['conductorNombre'] ?? 'No programado';
+    String conductorApellido = viaje['conductorApellido'] ?? '';
+    // Manejo de fechaViaje tipo Timestamp
+    String fechaViaje;
+    if (viaje['fechaViaje'] == null) {
+      fechaViaje = 'No programado';
+    } else if (viaje['fechaViaje'] is Timestamp) {
+      DateTime fecha = (viaje['fechaViaje'] as Timestamp).toDate();
+      fechaViaje =
+          '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+    } else if (viaje['fechaViaje'] is String) {
+      fechaViaje = viaje['fechaViaje'];
+    } else {
+      fechaViaje = 'No programado';
+    }
+    String horaViaje = viaje['horaViaje'] ?? 'No programado';
+    int plazasDisponibles =
+        viaje['plazasDisponibles'] is int ? viaje['plazasDisponibles'] : 0;
+    int precio = viaje['precio'] is int ? viaje['precio'] : 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -264,28 +378,46 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Row(
                         children: [
-                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.principal, shape: BoxShape.circle)),
+                          Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                  color: AppColors.principal,
+                                  shape: BoxShape.circle)),
                           const SizedBox(width: 8),
-                          Text(viaje['origen'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          Text(origen,
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600)),
                         ],
                       ),
                       Padding(
                         padding: const EdgeInsets.only(left: 4),
-                        child: Container(width: 1, height: 12, color: AppColors.gris300),
+                        child: Container(
+                            width: 1, height: 12, color: AppColors.gris300),
                       ),
                       Row(
                         children: [
-                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle)),
+                          Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                  color: AppColors.error,
+                                  shape: BoxShape.circle)),
                           const SizedBox(width: 8),
-                          Text(viaje['destino'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          Text(destino,
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ],
                   ),
                 ),
                 Text(
-                  '\$${(viaje['precio'] as int).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.principal),
+                  '\$${precio.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.principal),
                 ),
               ],
             ),
@@ -299,13 +431,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [AppColors.principal, AppColors.secundario]),
+                    gradient: const LinearGradient(
+                        colors: [AppColors.principal, AppColors.secundario]),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Center(
                     child: Text(
-                      '${viaje['conductorNombre'][0]}${viaje['conductorApellido'][0]}'.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      '${conductorNombre.isNotEmpty ? conductorNombre[0] : ''}${conductorApellido.isNotEmpty ? conductorApellido[0] : ''}'
+                          .toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -314,15 +449,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${viaje['conductorNombre']} ${viaje['conductorApellido']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                      Text('${viaje['fechaViaje']} • ${viaje['horaViaje']} • ${viaje['plazasDisponibles']} asientos', style: const TextStyle(fontSize: 12, color: AppColors.subtitulo)),
+                      Text('$conductorNombre $conductorApellido',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text(
+                          '$fechaViaje • $horaViaje • $plazasDisponibles asientos',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.subtitulo)),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: AppColors.principal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                  child: const Text('Reservar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.principal)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: AppColors.principal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Text('Reservar',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.principal)),
                 ),
               ],
             ),
@@ -332,13 +479,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionCard(IconData icon, String title, String subtitle, Color color) {
+  Widget _buildActionCard(
+      IconData icon, String title, String subtitle, Color color) {
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2))
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -347,13 +500,21 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12)),
                 child: Icon(icon, color: color, size: 24),
               ),
               const SizedBox(height: 16),
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.titulo)),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.titulo)),
               const SizedBox(height: 4),
-              Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.subtitulo)),
+              Text(subtitle,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.subtitulo)),
             ],
           ),
         ),
