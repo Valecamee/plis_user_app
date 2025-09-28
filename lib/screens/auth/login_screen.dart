@@ -50,7 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       }
-
     } catch (e) {
       // Mostrar error
       if (mounted) {
@@ -71,9 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _goToRegister(BuildContext context) {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const RegisterScreen())
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => const RegisterScreen()));
   }
 
   @override
@@ -154,7 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Ingresa tu correo electrónico';
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                  .hasMatch(value)) {
                                 return 'Ingresa un correo electrónico válido';
                               }
                               return null;
@@ -176,7 +175,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 });
                               },
                               icon: Icon(
-                                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: AppColors.gris400,
                               ),
                             ),
@@ -217,37 +218,38 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Botón de login
                           _isLoading
                               ? Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: AppColors.gris200,
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.principal,
-                                strokeWidth: 2,
-                              ),
-                            ),
-                          )
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.gris200,
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.principal,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                )
                               : ElevatedButton(
-                            onPressed: _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.principal,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Iniciar Sesión',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+                                  onPressed: _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.principal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(28),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    'Iniciar Sesión',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                         ],
                       ),
                     ),

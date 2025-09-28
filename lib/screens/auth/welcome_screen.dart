@@ -158,7 +158,8 @@ class WelcomeScreen extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () => _goToLogin(context),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.principal, width: 2),
+                      side: const BorderSide(
+                          color: AppColors.principal, width: 2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
