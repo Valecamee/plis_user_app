@@ -9,6 +9,7 @@ import '../../constants/terms_and_conditions.dart';
 import 'login_screen.dart';
 import 'terms_screen.dart';
 import '../home_screen.dart';
+import '../registration/permissions_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -84,9 +85,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
 
-        // Navegar al home
+        // Navegar a la pantalla de permisos
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(
+            builder: (context) => PermissionsScreen(
+              onNext: () {
+                // Después de conceder permisos, ir al home
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              },
+            ),
+          ),
         );
       }
     } catch (e) {

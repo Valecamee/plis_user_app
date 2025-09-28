@@ -22,11 +22,17 @@ dependencies:
   firebase_storage: ^11.6.9
   firebase_app_check: ^0.2.2+7
   
-  # File handling (para cédula y foto) - Lo agregaremos después
-  # file_picker: ^8.1.5
+  # File handling (para cédula y foto)
+  file_picker: ^8.0.0+1
   
   # Permissions
   permission_handler: ^11.2.0
+  
+  # Environment variables
+  flutter_dotenv: ^5.1.0
+  
+  # Path handling
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +44,7 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icons/icon.png"
+
 
 
 flutter:
@@ -52,9 +59,9 @@ flutter:
     - assets/icons/icon.png
 
   
-  # assets:
-  #   - assets/images/
-  #   - assets/icons/
+  assets:
+    - assets/images/
+    - assets/icons/
 
   # fonts:
   #   - family: Manrope
