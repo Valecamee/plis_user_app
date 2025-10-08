@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
+import '../services/travel_service.dart';
+import '../models/travel_model.dart';
 import 'auth/welcome_screen.dart';
 import 'detalle_viaje_screen.dart';
 
@@ -229,21 +231,42 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Lista de viajes disponibles desde Firestore
-                        StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('viajes')
-                              .orderBy('fechaViaje', descending: true)
-                              .limit(4)
-                              .snapshots(),
+                        // Lista de viajes disponibles desde Firestore (colección 'travels')
+                        StreamBuilder<List<Travel>>(
+                          stream: TravelService.getAvailableTravelsStream(limit: 4),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Center(
                                   child: CircularProgressIndicator());
                             }
-                            if (!snapshot.hasData ||
-                                snapshot.data!.docs.isEmpty) {
+                            if (snapshot.hasError) {
+                              // Mostrar error detallado para debugging
+                              print('Error en StreamBuilder: ${snapshot.error}');
+                              return Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.error_outline,
+                                        size: 32, color: AppColors.error),
+                                    const SizedBox(height: 16),
+                                    const Text('Error al cargar viajes',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.titulo)),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      snapshot.error.toString(),
+                                      style: const TextStyle(
+                                          fontSize: 12, color: AppColors.subtitulo),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
                               return Padding(
                                 padding: const EdgeInsets.all(32),
                                 child: Column(
@@ -260,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               );
                             }
-                            final viajes = snapshot.data!.docs;
+                            final viajes = snapshot.data!;
                             return ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
@@ -268,15 +291,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const EdgeInsets.symmetric(horizontal: 20),
                               itemCount: viajes.length,
                               itemBuilder: (context, index) {
-                                final viaje = viajes[index].data()
-                                    as Map<String, dynamic>;
+                                final viaje = viajes[index];
                                 return GestureDetector(
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            DetalleViajeScreen(viaje: viaje),
+                                            DetalleViajeScreen(travel: viaje),
                                       ),
                                     );
                                   },
@@ -330,28 +352,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildViajeCard(Map<String, dynamic> viaje) {
-    String origen = viaje['origen'] ?? 'No programado';
-    String destino = viaje['destino'] ?? 'No programado';
-    String conductorNombre = viaje['conductorNombre'] ?? 'No programado';
-    String conductorApellido = viaje['conductorApellido'] ?? '';
-    // Manejo de fechaViaje tipo Timestamp
-    String fechaViaje;
-    if (viaje['fechaViaje'] == null) {
-      fechaViaje = 'No programado';
-    } else if (viaje['fechaViaje'] is Timestamp) {
-      DateTime fecha = (viaje['fechaViaje'] as Timestamp).toDate();
-      fechaViaje =
-          '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
-    } else if (viaje['fechaViaje'] is String) {
-      fechaViaje = viaje['fechaViaje'];
-    } else {
-      fechaViaje = 'No programado';
-    }
-    String horaViaje = viaje['horaViaje'] ?? 'No programado';
-    int plazasDisponibles =
-        viaje['plazasDisponibles'] is int ? viaje['plazasDisponibles'] : 0;
-    int precio = viaje['precio'] is int ? viaje['precio'] : 0;
+  Widget _buildViajeCard(Travel viaje) {
+    String origen = viaje.origen;
+    String destino = viaje.destino;
+    String conductorNombre = viaje.conductorNombre;
+    String conductorApellido = viaje.conductorApellido;
+    String fechaViaje = viaje.fechaFormateada;
+    String horaViaje = viaje.horaFormateada;
+    int plazasDisponibles = viaje.plazasDisponibles;
+    double precio = viaje.precioPorAsiento ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -413,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Text(
-                  '\$${precio.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  '\$${precio.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
                   style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,

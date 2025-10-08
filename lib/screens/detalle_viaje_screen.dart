@@ -1,39 +1,29 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../models/travel_model.dart';
+import '../widgets/route_map_widget.dart';
 
 class DetalleViajeScreen extends StatelessWidget {
-  final Map<String, dynamic> viaje;
-  const DetalleViajeScreen({Key? key, required this.viaje}) : super(key: key);
+  final Travel travel;
+  const DetalleViajeScreen({Key? key, required this.travel}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    String origen = viaje['origen'] ?? 'No programado';
-    String destino = viaje['destino'] ?? 'No programado';
-    String conductorNombre = viaje['conductorNombre'] ?? 'No programado';
-    String conductorApellido = viaje['conductorApellido'] ?? '';
-    String fechaViaje;
-    if (viaje['fechaViaje'] == null) {
-      fechaViaje = 'No programado';
-    } else if (viaje['fechaViaje'] is Timestamp) {
-      DateTime fecha = (viaje['fechaViaje'] as Timestamp).toDate();
-      fechaViaje =
-          '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
-    } else if (viaje['fechaViaje'] is String) {
-      fechaViaje = viaje['fechaViaje'];
-    } else {
-      fechaViaje = 'No programado';
-    }
-    String horaViaje = viaje['horaViaje'] ?? 'No programado';
-    int plazasDisponibles =
-        viaje['plazasDisponibles'] is int ? viaje['plazasDisponibles'] : 0;
-    int precio = viaje['precio'] is int ? viaje['precio'] : 0;
-    String vehiculoPlaca = viaje['vehiculoPlaca'] ?? 'No programado';
+    String origen = travel.origen;
+    String destino = travel.destino;
+    String conductorNombre = travel.conductorNombre;
+    String conductorApellido = travel.conductorApellido;
+    String fechaViaje = travel.fechaFormateada;
+    String horaViaje = travel.horaFormateada;
+    int plazasDisponibles = travel.plazasDisponibles;
+    double precio = travel.precioPorAsiento ?? 0;
+    String vehiculoPlaca = travel.vehiculoPlaca ?? 'No programado';
+    String distanciaTexto = travel.distanciaTexto ?? 'No disponible';
+    String duracionTexto = travel.duracionTexto ?? 'No disponible';
+    String tipoEquipaje = travel.tipoEquipajeTexto;
 
     // Verificar disponibilidad del viaje
-    bool viajeDisponible = plazasDisponibles > 0 &&
-        origen != 'No programado' &&
-        destino != 'No programado';
+    bool viajeDisponible = travel.estaDisponible;
 
     return Scaffold(
       appBar: AppBar(
@@ -76,6 +66,17 @@ class DetalleViajeScreen extends StatelessWidget {
 
                     // Detalles adicionales
                     _buildDetallesSection(plazasDisponibles, vehiculoPlaca),
+                    const SizedBox(height: 20),
+
+                    // Información de ruta
+                    _buildRutaInfoSection(distanciaTexto, duracionTexto, tipoEquipaje),
+                    const SizedBox(height: 20),
+
+                    // Mapa con la ruta
+                    RouteMapWidget(
+                      travel: travel,
+                      height: 300,
+                    ),
                     const SizedBox(height: 100), // Espacio para el botón fijo
                   ],
                 ),
@@ -84,7 +85,7 @@ class DetalleViajeScreen extends StatelessWidget {
           ),
 
           // Barra inferior fija con precio y botón
-          _buildBottomBar(context, precio, viajeDisponible),
+          _buildBottomBar(context, precio.toInt(), viajeDisponible),
         ],
       ),
     );
@@ -577,6 +578,55 @@ class DetalleViajeScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRutaInfoSection(String distancia, String duracion, String equipaje) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Información de la ruta',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.titulo,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoItem(
+                    icon: Icons.straighten,
+                    label: 'Distancia',
+                    value: distancia,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildInfoItem(
+                    icon: Icons.schedule,
+                    label: 'Duración estimada',
+                    value: duracion,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildInfoItem(
+              icon: Icons.luggage,
+              label: 'Equipaje permitido',
+              value: equipaje,
+            ),
           ],
         ),
       ),

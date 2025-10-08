@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Stran/Desktop/Carpeta/plis/plis app/plis_conductor/plis_conductor_app/lib/services/**)",
+      "Bash(flutter run:*)",
+      "Bash(dir:*)",
+      "Bash(flutter pub:*)",
+      "Bash(cat:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
