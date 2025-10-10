@@ -21,7 +21,8 @@ dependencies:
   cloud_firestore: ^4.15.8
   firebase_storage: ^11.6.9
   firebase_app_check: ^0.2.2+7
-  
+
+
   # File handling (para cédula y foto)
   file_picker: ^8.0.0+1
   
@@ -33,7 +34,10 @@ dependencies:
 
   # Maps & Location
   google_maps_flutter: ^2.5.3
-  flutter_polyline_points: ^2.0.1
+  #flutter_polyline_points: ^2.0.1
+  flutter_polyline_points: ^2.1.0
+
+
 
   # Path handling
   path: ^1.8.3

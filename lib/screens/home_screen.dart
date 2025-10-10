@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:plis_user/widgets/advanced_search_widget.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
 import '../services/travel_service.dart';
 import '../models/travel_model.dart';
 import 'auth/welcome_screen.dart';
 import 'detalle_viaje_screen.dart';
+import "../../widgets/advanced_search_widget.dart";
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -113,30 +115,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Barra de búsqueda
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2))
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: '¿A dónde quieres ir?',
-                    hintStyle:
-                        TextStyle(color: AppColors.gris400, fontSize: 16),
-                    prefixIcon: Icon(Icons.search, color: AppColors.principal),
-                    suffixIcon: Icon(Icons.tune, color: AppColors.gris400),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12),
-                  ),
+
+                child: AdvancedSearchWidget(
+                  onSearch: (query) {
+                    // Implementar búsqueda avanzada
+                  },
+
                 ),
               ),
 
