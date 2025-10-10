@@ -165,6 +165,100 @@ class TravelService {
       throw Exception('Error al buscar viajes por texto: $e');
     }
   }
+  static Future<List<Travel>> advancedSearch({
+    required String query,
+    required Map<String, dynamic> filters,
+  }) async {
+    final snapshot = await FirebaseFirestore.instance.collection('travels').get();
+    final allTravels = snapshot.docs
+        .map((doc) => Travel.fromMap(doc.data(), doc.id))
+        .toList();
+
+    // Filtros del widget (puedes agregar más campos si los tienes)
+    final String? origen = filters['origen'];
+    final String? destino = filters['destino'];
+    final DateTime? fechaViaje = filters['fechaViaje'];
+    final double? precio = filters['precio'];
+    final int? plazasTotales = filters['plazasTotales'];
+
+    // Lógica de coincidencia ponderada (no exacta)
+    final filtered = allTravels.where((travel) {
+      double score = 0;
+
+      if (origen != null &&
+          travel.origen.toLowerCase().contains(origen.toLowerCase())) {
+        score += 2;
+      }
+
+      if (destino != null &&
+          travel.destino.toLowerCase().contains(destino.toLowerCase())) {
+        score += 2;
+      }
+
+      if (fechaViaje != null &&
+          (travel.fechaViaje.year == fechaViaje.year &&
+              travel.fechaViaje.month == fechaViaje.month &&
+              travel.fechaViaje.day == fechaViaje.day)) {
+        score += 1.5;
+      }
+
+      if (precio != null && travel.precio != null && travel.precio! <= precio) {
+        score += 1;
+      }
+
+
+      if (plazasTotales != null && travel.plazasDisponibles != null && travel.plazasDisponibles! >= plazasTotales) {
+        score += 1;
+      }
+
+      // Si coincide con el query general (texto libre)
+      if (query.isNotEmpty &&
+          (travel.origen.toLowerCase().contains(query.toLowerCase()) ||
+              travel.destino.toLowerCase().contains(query.toLowerCase()))) {
+        score += 2;
+      }
+
+      return score > 0; // lo incluimos si tiene algún nivel de coincidencia
+    }).toList();
+
+    // Ordenamos por mayor puntuación
+    filtered.sort((a, b) {
+      double scoreA = _calculateMatchScore(a, query, filters);
+      double scoreB = _calculateMatchScore(b, query, filters);
+      return scoreB.compareTo(scoreA);
+    });
+
+    return filtered;
+  }
+
+  static double _calculateMatchScore(
+      Travel travel, String query, Map<String, dynamic> filters) {
+    double score = 0;
+
+    final String? origen = filters['origen'];
+    final String? destino = filters['destino'];
+    final DateTime? fechaViaje = filters['fechaViaje'];
+    final double? precio = filters['precio'];
+    final int? plazasTotales = filters['plazasTotales'];
+
+    if (origen != null &&
+        travel.origen.toLowerCase().contains(origen.toLowerCase())) score += 2;
+    if (destino != null &&
+        travel.destino.toLowerCase().contains(destino.toLowerCase())) score += 2;
+    if (fechaViaje != null &&
+        (travel.fechaViaje.year == fechaViaje.year &&
+            travel.fechaViaje.month == fechaViaje.month &&
+            travel.fechaViaje.day == fechaViaje.day)) score += 1.5;
+    if (precio != null && travel.precio != null && travel.precio! <= precio) score += 1;
+
+    if (plazasTotales != null && travel.plazasTotales >= plazasTotales) score += 1;
+
+    if (query.isNotEmpty &&
+        (travel.origen.toLowerCase().contains(query.toLowerCase()) ||
+            travel.destino.toLowerCase().contains(query.toLowerCase()))) score += 2;
+
+    return score;
+  }
 
   /// Obtiene el número de plazas disponibles de un viaje.
   ///

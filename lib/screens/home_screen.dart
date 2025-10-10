@@ -8,6 +8,8 @@ import '../models/travel_model.dart';
 import 'auth/welcome_screen.dart';
 import 'detalle_viaje_screen.dart';
 import "../../widgets/advanced_search_widget.dart";
+import '../widgets/busqueda_resultados_widget.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +21,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AuthService _authService = AuthService();
+  List<Travel> _travels = [];
+
+  bool _showSearchResults = false;
+
 
   @override
   void dispose() {
@@ -35,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -115,14 +122,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Barra de búsqueda
               Container(
-
-                child: AdvancedSearchWidget(
-                  onSearch: (query) {
-                    // Implementar búsqueda avanzada
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                child: _showSearchResults
+                    ? BusquedaResultadosWidget(
+                  travels: _travels,
+                  viajeCardBuilder: _buildViajeCard,
+                  onClose: () {
+                    setState(() {
+                      _showSearchResults = false;
+                      _travels = [];
+                    });
                   },
-
+                )
+                    : AdvancedSearchWidget(
+                  onSearch: (query, filters) async {
+                    try {
+                      final results = await TravelService.advancedSearch(
+                        query: query,
+                        filters: filters,
+                      );
+                      setState(() {
+                        _travels = results;
+                        _showSearchResults = true;
+                      });
+                    } catch (e) {
+                      print('Error al buscar viajes: $e');
+                    }
+                  },
+                  onClear: () {
+                    setState(() {
+                      _showSearchResults = false;
+                      _travels = [];
+                    });
+                  },
                 ),
               ),
+
 
               const SizedBox(height: 24),
 

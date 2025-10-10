@@ -4,7 +4,8 @@ import '../services/search_service.dart';
 
 /// Widget de búsqueda avanzada con filtros múltiples
 class AdvancedSearchWidget extends StatefulWidget {
-  final Function(Map<String, dynamic>) onSearch;
+  final Function(String query, Map<String, dynamic> filters) onSearch;
+
   final VoidCallback? onClear;
 
   const AdvancedSearchWidget({
@@ -105,7 +106,17 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
       filters['asientosMinimos'] = _asientosMinimos;
     }
 
-    widget.onSearch(filters);
+
+    // Oculta los filtros al buscar
+    setState(() {
+      _showFilters = false;
+    });
+
+    widget.onSearch(
+      _searchController.text,
+      filters,
+    );
+
   }
 
   /// Limpia todos los filtros

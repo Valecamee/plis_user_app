@@ -167,55 +167,25 @@ class SearchService {
 
   /// Obtiene lista única de orígenes disponibles
   static Future<List<String>> getAvailableOrigins() async {
-    try {
-      QuerySnapshot querySnapshot = await _firestore
-          .collection(_collectionName)
-          .where('estado', isEqualTo: 'programado')
-          .get();
-
-      Set<String> origins = {};
-      for (var doc in querySnapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        String origen = data['origen'] ?? '';
-        if (origen.isNotEmpty) {
-          origins.add(origen);
-        }
-      }
-
-      List<String> originsList = origins.toList();
-      originsList.sort();
-      return originsList;
-    } catch (e) {
-      print('Error obteniendo orígenes: $e');
-      return [];
-    }
+    final snapshot = await FirebaseFirestore.instance.collection('travels').get();
+    final origins = snapshot.docs
+        .map((doc) => doc['origen'] as String)
+        .toSet()
+        .toList();
+    return origins;
   }
+
 
   /// Obtiene lista única de destinos disponibles
   static Future<List<String>> getAvailableDestinations() async {
-    try {
-      QuerySnapshot querySnapshot = await _firestore
-          .collection(_collectionName)
-          .where('estado', isEqualTo: 'programado')
-          .get();
-
-      Set<String> destinations = {};
-      for (var doc in querySnapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        String destino = data['destino'] ?? '';
-        if (destino.isNotEmpty) {
-          destinations.add(destino);
-        }
-      }
-
-      List<String> destinationsList = destinations.toList();
-      destinationsList.sort();
-      return destinationsList;
-    } catch (e) {
-      print('Error obteniendo destinos: $e');
-      return [];
-    }
+    final snapshot = await FirebaseFirestore.instance.collection('travels').get();
+    final destinations = snapshot.docs
+        .map((doc) => doc['destino'] as String)
+        .toSet()
+        .toList();
+    return destinations;
   }
+
 
   /// Obtiene el rango de precios disponibles
   static Future<Map<String, double>> getPriceRange() async {
