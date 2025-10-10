@@ -1,26 +1,22 @@
 // lib/widgets/busqueda_resultados_widget.dart
 import 'package:flutter/material.dart';
-import '../models/travel_model.dart';
-import '../utils/app_colors.dart';
+import '../../models/travel_model.dart';
+import '../../utils/app_colors.dart';
+import '../../widgets/common/travel_card.dart'; // 👈 importa tu nuevo widget
 
-
-// En busqueda_resultados_widget.dart
 class BusquedaResultadosWidget extends StatelessWidget {
   final List<Travel> travels;
-  final Widget Function(Travel) viajeCardBuilder;
   final VoidCallback onClose;
 
   const BusquedaResultadosWidget({
     Key? key,
     required this.travels,
-    required this.viajeCardBuilder,
     required this.onClose,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Mismos márgenes y decoración que AdvancedSearchWidget
       margin: const EdgeInsets.symmetric(vertical: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -37,6 +33,7 @@ class BusquedaResultadosWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Título + botón cerrar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -55,9 +52,14 @@ class BusquedaResultadosWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
+
+          // Lista de resultados o mensaje vacío
           if (travels.isEmpty)
             const Center(
-              child: Text('No se encontraron viajes'),
+              child: Text(
+                'No se encontraron viajes',
+                style: TextStyle(color: AppColors.subtitulo),
+              ),
             )
           else
             ListView.builder(
@@ -66,7 +68,20 @@ class BusquedaResultadosWidget extends StatelessWidget {
               itemCount: travels.length,
               itemBuilder: (context, index) {
                 final viaje = travels[index];
-                return viajeCardBuilder(viaje);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      // ✅ Navegación al detalle del viaje
+                      Navigator.pushNamed(
+                        context,
+                        '/detalleViaje',
+                        arguments: viaje,
+                      );
+                    },
+                    child: TravelCard(viaje: viaje), // 👈 usa el nuevo widget
+                  ),
+                );
               },
             ),
         ],
@@ -74,3 +89,4 @@ class BusquedaResultadosWidget extends StatelessWidget {
     );
   }
 }
+

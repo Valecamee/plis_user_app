@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
-import '../services/search_service.dart';
+import '../../utils/app_colors.dart';
+import '../../services/search_service.dart';
 
 /// Widget de búsqueda avanzada con filtros múltiples
 class AdvancedSearchWidget extends StatefulWidget {
