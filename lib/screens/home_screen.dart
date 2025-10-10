@@ -6,6 +6,10 @@ import '../services/travel_service.dart';
 import '../models/travel_model.dart';
 import 'auth/welcome_screen.dart';
 import 'detalle_viaje_screen.dart';
+import "../../widgets/search/advanced_search_widget.dart";
+import '../widgets/search/busqueda_resultados_widget.dart';
+import '../../widgets/common/travel_card.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +21,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final AuthService _authService = AuthService();
+  List<Travel> _travels = [];
+
+  bool _showSearchResults = false;
+
 
   @override
   void dispose() {
@@ -29,10 +37,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-        (route) => false,
+            (route) => false,
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -114,31 +123,41 @@ class _HomeScreenState extends State<HomeScreen> {
               // Barra de búsqueda
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2))
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: '¿A dónde quieres ir?',
-                    hintStyle:
-                        TextStyle(color: AppColors.gris400, fontSize: 16),
-                    prefixIcon: Icon(Icons.search, color: AppColors.principal),
-                    suffixIcon: Icon(Icons.tune, color: AppColors.gris400),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12),
-                  ),
+                child: _showSearchResults
+                    ? BusquedaResultadosWidget(
+                  travels: _travels,
+
+                  onClose: () {
+                    setState(() {
+                      _showSearchResults = false;
+                      _travels = [];
+                    });
+                  },
+                )
+                    : AdvancedSearchWidget(
+                  onSearch: (query, filters) async {
+                    try {
+                      final results = await TravelService.advancedSearch(
+                        query: query,
+                        filters: filters,
+                      );
+                      setState(() {
+                        _travels = results;
+                        _showSearchResults = true;
+                      });
+                    } catch (e) {
+                      print('Error al buscar viajes: $e');
+                    }
+                  },
+                  onClear: () {
+                    setState(() {
+                      _showSearchResults = false;
+                      _travels = [];
+                    });
+                  },
                 ),
               ),
+
 
               const SizedBox(height: 24),
 
@@ -149,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: const BoxDecoration(
                     color: AppColors.gris50,
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(32)),
+                    BorderRadius.vertical(top: Radius.circular(32)),
                   ),
                   child: SingleChildScrollView(
                     child: Column(
@@ -192,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                     color:
-                                        AppColors.secundario.withOpacity(0.1),
+                                    AppColors.secundario.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(50)),
                                 child: const Icon(Icons.event_note,
                                     size: 32, color: AppColors.secundario),
@@ -288,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
+                              const EdgeInsets.symmetric(horizontal: 20),
                               itemCount: viajes.length,
                               itemBuilder: (context, index) {
                                 final viaje = viajes[index];
@@ -302,7 +321,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     );
                                   },
-                                  child: _buildViajeCard(viaje),
+                                  child: TravelCard(
+                                    viaje: viaje,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DetalleViajeScreen(travel: viaje),
+                                        ),
+                                      );
+                                    },
+                                  ),
+
                                 );
                               },
                             );
@@ -352,141 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildViajeCard(Travel viaje) {
-    String origen = viaje.origen;
-    String destino = viaje.destino;
-    String conductorNombre = viaje.conductorNombre;
-    String conductorApellido = viaje.conductorApellido;
-    String fechaViaje = viaje.fechaFormateada;
-    String horaViaje = viaje.horaFormateada;
-    int plazasDisponibles = viaje.plazasDisponibles;
-    double precio = viaje.precioPorAsiento ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 4))
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Ruta y precio
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                  color: AppColors.principal,
-                                  shape: BoxShape.circle)),
-                          const SizedBox(width: 8),
-                          Text(origen,
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Container(
-                            width: 1, height: 12, color: AppColors.gris300),
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                  color: AppColors.error,
-                                  shape: BoxShape.circle)),
-                          const SizedBox(width: 8),
-                          Text(destino,
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  '\$${precio.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.principal),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Info y conductor
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [AppColors.principal, AppColors.secundario]),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${conductorNombre.isNotEmpty ? conductorNombre[0] : ''}${conductorApellido.isNotEmpty ? conductorApellido[0] : ''}'
-                          .toUpperCase(),
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('$conductorNombre $conductorApellido',
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600)),
-                      Text(
-                          '$fechaViaje • $horaViaje • $plazasDisponibles asientos',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.subtitulo)),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                      color: AppColors.principal.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12)),
-                  child: const Text('Reservar',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.principal)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildActionCard(
       IconData icon, String title, String subtitle, Color color) {
