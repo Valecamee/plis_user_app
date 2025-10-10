@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../models/travel_model.dart';
 import '../../utils/app_colors.dart';
-import '../../widgets/common/travel_card.dart'; // 👈 importa tu nuevo widget
+import '../../widgets/common/travel_card.dart';
 import '../../screens/detalle_viaje_screen.dart';
 
 class BusquedaResultadosWidget extends StatelessWidget {
@@ -17,6 +17,9 @@ class BusquedaResultadosWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double maxHeight = MediaQuery.of(context).size.height * 0.65;
+    // 👆 el widget ocupará máximo el 60% de la pantalla (ajustable)
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 16),
       padding: const EdgeInsets.all(16),
@@ -54,7 +57,7 @@ class BusquedaResultadosWidget extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Lista de resultados o mensaje vacío
+          // Resultados con scroll
           if (travels.isEmpty)
             const Center(
               child: Text(
@@ -63,29 +66,29 @@ class BusquedaResultadosWidget extends StatelessWidget {
               ),
             )
           else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: travels.length,
-              itemBuilder: (context, index) {
-                final viaje = travels[index];
-                return TravelCard(
-                  viaje: viaje,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetalleViajeScreen(travel: viaje),
-                      ),
-                    );
-                  },
-                );
-              },
-
+            SizedBox(
+              height: maxHeight,
+              child: ListView.builder(
+                itemCount: travels.length,
+                itemBuilder: (context, index) {
+                  final viaje = travels[index];
+                  return TravelCard(
+                    viaje: viaje,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              DetalleViajeScreen(travel: viaje),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
         ],
       ),
     );
   }
 }
-

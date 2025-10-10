@@ -52,18 +52,28 @@ class TravelCard extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                    color: AppColors.principal,
-                                    shape: BoxShape.circle)),
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.principal,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                             const SizedBox(width: 8),
-                            Text(origen,
+                            Expanded( // 👈 Esto permite que el texto salte de línea
+                              child: Text(
+                                origen,
                                 style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600)),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                softWrap: true,
+                                overflow: TextOverflow.visible,
+                              ),
+                            ),
                           ],
                         ),
+
                         Padding(
                           padding: const EdgeInsets.only(left: 4),
                           child: Container(
@@ -74,18 +84,28 @@ class TravelCard extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                    color: AppColors.error,
-                                    shape: BoxShape.circle)),
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                             const SizedBox(width: 8),
-                            Text(destino,
+                            Expanded( // 👈 Aquí también
+                              child: Text(
+                                destino,
                                 style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600)),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                softWrap: true,
+                                overflow: TextOverflow.visible,
+                              ),
+                            ),
                           ],
                         ),
+
                       ],
                     ),
                   ),
@@ -95,6 +115,9 @@ class TravelCard extends StatelessWidget {
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: AppColors.principal),
+                      softWrap: true,         // 👈 permite salto de línea
+                      overflow: TextOverflow.visible, // 👈 muestra el texto completo
+                    //maxLines: 2,
                   ),
                 ],
               ),
@@ -120,6 +143,9 @@ class TravelCard extends StatelessWidget {
                         style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600),
+                          softWrap: true,         // 👈 permite salto de línea
+                          overflow: TextOverflow.visible, // 👈 muestra el texto completo
+                        //maxLines: 2,
                       ),
                     ),
                   ),
