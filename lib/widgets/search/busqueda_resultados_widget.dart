@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/travel_model.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/common/travel_card.dart'; // 👈 importa tu nuevo widget
+import '../../screens/detalle_viaje_screen.dart';
 
 class BusquedaResultadosWidget extends StatelessWidget {
   final List<Travel> travels;
@@ -68,21 +69,19 @@ class BusquedaResultadosWidget extends StatelessWidget {
               itemCount: travels.length,
               itemBuilder: (context, index) {
                 final viaje = travels[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: GestureDetector(
-                    onTap: () {
-                      // ✅ Navegación al detalle del viaje
-                      Navigator.pushNamed(
-                        context,
-                        '/detalleViaje',
-                        arguments: viaje,
-                      );
-                    },
-                    child: TravelCard(viaje: viaje), // 👈 usa el nuevo widget
-                  ),
+                return TravelCard(
+                  viaje: viaje,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetalleViajeScreen(travel: viaje),
+                      ),
+                    );
+                  },
                 );
               },
+
             ),
         ],
       ),
