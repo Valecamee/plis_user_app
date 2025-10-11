@@ -2,13 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
-import '../services/travel_service.dart';
+import '../services/travel_query_service.dart';
 import '../models/travel_model.dart';
 import 'auth/welcome_screen.dart';
 import 'detalle_viaje_screen.dart';
+import 'historial_viajes_screen.dart';
 import "../../widgets/search/advanced_search_widget.dart";
 import '../widgets/search/busqueda_resultados_widget.dart';
 import '../../widgets/common/travel_card.dart';
+import '../widgets/home/proximos_viajes_widget.dart'; // ✅ NUEVO IMPORT
 
 
 class HomeScreen extends StatefulWidget {
@@ -137,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     : AdvancedSearchWidget(
                   onSearch: (query, filters) async {
                     try {
-                      final results = await TravelService.advancedSearch(
+                      final results = await TravelQueryService.advancedSearch(
                         query: query,
                         filters: filters,
                       );
@@ -175,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const SizedBox(height: 24),
 
-                        // Mis viajes programados
+                        // Mis viajes programados - TÍTULO
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Row(
@@ -191,46 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Placeholder mis viajes
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 20),
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2))
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                    color:
-                                    AppColors.secundario.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(50)),
-                                child: const Icon(Icons.event_note,
-                                    size: 32, color: AppColors.secundario),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text('No tienes viajes programados',
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.titulo)),
-                              const SizedBox(height: 8),
-                              const Text(
-                                  'Cuando reserves un viaje aparecerá aquí',
-                                  style: TextStyle(
-                                      fontSize: 14, color: AppColors.subtitulo),
-                                  textAlign: TextAlign.center),
-                            ],
-                          ),
-                        ),
+                        // ✅ REEMPLAZADO: Widget de próximos viajes
+                        const ProximosViajesWidget(),
 
                         const SizedBox(height: 32),
 
@@ -252,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // Lista de viajes disponibles desde Firestore (colección 'travels')
                         StreamBuilder<List<Travel>>(
-                          stream: TravelService.getAvailableTravelsStream(limit: 4),
+                          stream: TravelQueryService.getAvailableTravelsStream(limit: 4),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
@@ -355,8 +319,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 16),
                               Row(
                                 children: [
-                                  _buildActionCard(Icons.history, 'Historial',
-                                      'Viajes anteriores', AppColors.gris600),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const HistorialViajesScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: _buildActionCard(Icons.history, 'Historial',
+                                        'Viajes anteriores', AppColors.gris600),
+                                  ),
                                   const SizedBox(width: 16),
                                   _buildActionCard(
                                       Icons.pending_actions,

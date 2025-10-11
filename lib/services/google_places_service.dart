@@ -62,7 +62,7 @@ class GooglePlacesService {
     if (input.isEmpty) return [];
 
     if (_apiKey.isEmpty) {
-      throw Exception('Google Maps API Key no configurada. Verifica tu archivo .env');
+      throw Exception('Google Maps API Key no configurada. Verifica tu archivo ...env');
     }
 
     try {
