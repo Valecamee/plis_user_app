@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../models/travel_model.dart';
 import '../widgets/route_map_widget.dart';
-// imports necesarios:
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/travel_service.dart';
+import '../services/travel_booking_service.dart';
 import 'historial_viajes_screen.dart';
 
 
@@ -20,10 +19,61 @@ class DetalleViajeScreen extends StatefulWidget {
 
 class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
   bool _isReserving = false;
+  bool _hasReservation = false;
+  bool _isCheckingReservation = true;
+  int _reservedSeats = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserReservation();
+  }
+
+  /// Verifica si el usuario actual tiene una reserva en este viaje
+  Future<void> _checkUserReservation() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || widget.travel.id == null) {
+      setState(() {
+        _isCheckingReservation = false;
+      });
+      return;
+    }
+
+    try {
+      // Verificar si tiene reserva
+      final hasReservation = await TravelBookingService.hasUserReservation(
+        travelId: widget.travel.id!,
+        userId: user.uid,
+      );
+
+      // Obtener detalles de la reserva si existe
+      if (hasReservation) {
+        final reservationDetails = await TravelBookingService.getUserReservationDetails(
+          travelId: widget.travel.id!,
+          userId: user.uid,
+        );
+
+        setState(() {
+          _hasReservation = true;
+          _reservedSeats = reservationDetails?['seats'] ?? 1;
+          _isCheckingReservation = false;
+        });
+      } else {
+        setState(() {
+          _hasReservation = false;
+          _isCheckingReservation = false;
+        });
+      }
+    } catch (e) {
+      print('Error verificando reserva: $e');
+      setState(() {
+        _isCheckingReservation = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Accede a widget.travel, no travel directamente
     final travel = widget.travel;
 
     String origen = travel.origen;
@@ -39,7 +89,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     String duracionTexto = travel.duracionTexto ?? 'No disponible';
     String tipoEquipaje = travel.tipoEquipajeTexto;
 
-    // Verificar disponibilidad del viaje
     bool viajeDisponible = travel.estaDisponible;
 
     return Scaffold(
@@ -57,7 +106,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
       ),
       body: Column(
         children: [
-          // Contenido principal scrolleable
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -66,42 +114,33 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Banner de estado del viaje
                     if (!viajeDisponible) _buildStatusBanner(),
 
-                    // Información del conductor (arriba para generar confianza)
+                    // Banner de reserva existente
+                    if (_hasReservation) _buildReservationBanner(),
+
                     _buildConductorSection(conductorNombre, conductorApellido),
                     const SizedBox(height: 20),
-
-                    // Información de ruta (más prominente)
                     _buildRutaSection(origen, destino),
                     const SizedBox(height: 20),
-
-                    // Fecha y hora (información crítica)
                     _buildFechaHoraSection(fechaViaje, horaViaje),
                     const SizedBox(height: 20),
-
-                    // Detalles adicionales
                     _buildDetallesSection(plazasDisponibles, vehiculoPlaca),
                     const SizedBox(height: 20),
-
-                    // Información de ruta
                     _buildRutaInfoSection(distanciaTexto, duracionTexto, tipoEquipaje),
                     const SizedBox(height: 20),
-
-                    // Mapa con la ruta
                     RouteMapWidget(
                       travel: travel,
                       height: 300,
                     ),
-                    const SizedBox(height: 100), // Espacio para el botón fijo
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Barra inferior fija con precio y botón
+          // Barra inferior con botón dinámico
           _buildBottomBar(context, precio.toInt(), viajeDisponible),
         ],
       ),
@@ -136,6 +175,59 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     );
   }
 
+  Widget _buildReservationBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.principal.withOpacity(0.1),
+            AppColors.secundario.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.principal.withOpacity(0.3), width: 2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.principal,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '¡Ya tienes una reserva!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.titulo,
+                  ),
+                ),
+                Text(
+                  'Has reservado $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.subtitulo,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRutaSection(String origen, String destino) {
     return Card(
       elevation: 2,
@@ -144,7 +236,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Origen
             Row(
               children: [
                 Container(
@@ -181,8 +272,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                 ),
               ],
             ),
-
-            // Línea conectora
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(
@@ -198,8 +287,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                 ],
               ),
             ),
-
-            // Destino
             Row(
               children: [
                 Container(
@@ -437,6 +524,29 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
   }
 
   Widget _buildBottomBar(BuildContext context, int precio, bool disponible) {
+    // Mostrar loading mientras verifica
+    if (_isCheckingReservation) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.gris600.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: const SafeArea(
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.principal),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -477,35 +587,63 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
             ),
             const SizedBox(width: 16),
 
-            // Botón de reserva
+            // Botón dinámico
             Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      disponible ? AppColors.principal : AppColors.gris400,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: disponible ? 2 : 0,
-                ),
-                icon:
-                    Icon(disponible ? Icons.check_circle_outline : Icons.block),
-                label: Text(
-                  disponible ? 'Reservar viaje' : 'No disponible',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                onPressed:
-                    disponible ? () => _reservarViaje(context, precio) : null,
-              ),
+              child: _hasReservation
+                  ? _buildCancelButton()
+                  : _buildReserveButton(context, precio, disponible),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Botón de cancelar reserva (outline rojo)
+  Widget _buildCancelButton() {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.error,
+        side: const BorderSide(color: AppColors.error, width: 2),
+        minimumSize: const Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      icon: const Icon(Icons.cancel_outlined),
+      label: const Text(
+        'Cancelar reserva',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      onPressed: () => _showCancelDialog(),
+    );
+  }
+
+  /// Botón de reservar viaje (normal)
+  Widget _buildReserveButton(BuildContext context, int precio, bool disponible) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor:
+        disponible ? AppColors.principal : AppColors.gris400,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: disponible ? 2 : 0,
+      ),
+      icon: Icon(disponible ? Icons.check_circle_outline : Icons.block),
+      label: Text(
+        disponible ? 'Reservar viaje' : 'No disponible',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      onPressed: disponible ? () => _reservarViaje(context, precio) : null,
     );
   }
 
@@ -580,10 +718,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                       backgroundColor: AppColors.principal,
                     ),
                     onPressed: () {
-
+                      Navigator.pop(context);
                       _mostrarDialogReserva(context);
-
-
                     },
                     child: const Text('Confirmar'),
                   ),
@@ -645,13 +781,12 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
       ),
     );
   }
+
   Future<void> confirmarReservaViaje(Travel travel, int cantidadPlazas) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     final viajeRef = FirebaseFirestore.instance.collection('travels').doc(travel.id);
-
-    print(">>> ID recibido del viaje: ${travel.id}");
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final snapshot = await transaction.get(viajeRef);
@@ -665,7 +800,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
       }
 
       List usuarios = List.from(data['usuarios'] ?? []);
-      // Cada elemento será un mapa { id: userId, plazas: cantidad }
       usuarios.add({
         'id': user.uid,
         'plazas': cantidadPlazas,
@@ -677,23 +811,18 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
       });
     });
 
-    // Si todo sale bien:
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Reserva confirmada ✅")),
       );
 
-      // Espera un segundo y navega a la pantalla de “Mis viajes”
       await Future.delayed(const Duration(seconds: 1));
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MisViajesScreen()),
+        MaterialPageRoute(builder: (_) => const HistorialViajesScreen()),
       );
     }
-
-    print(">>> Reserva confirmada correctamente ✅");
   }
-
 
   void _mostrarDialogReserva(BuildContext context) {
     int cantidadPlazas = 1;
@@ -746,9 +875,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
               onPressed: () async {
                 Navigator.pop(context);
                 await confirmarReservaViaje(widget.travel, cantidadPlazas);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Reserva confirmada ✅")),
-                );
               },
             ),
           ],
@@ -757,6 +883,154 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     );
   }
 
+  /// Muestra el diálogo de confirmación para cancelar desde detalle
+  void _showCancelDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.warning_amber, color: AppColors.error, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text('Cancelar reserva'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '¿Estás seguro que deseas cancelar tu reserva?',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.gris50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 20, color: AppColors.subtitulo),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Se liberarán $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.subtitulo,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No, mantener'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _cancelReservation();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Sí, cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
 
+  /// Cancela la reserva del usuario
+  Future<void> _cancelReservation() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || widget.travel.id == null) return;
 
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.principal),
+      ),
+    );
+
+    try {
+      await TravelBookingService.cancelUserReservation(
+        travelId: widget.travel.id!,
+        userId: user.uid,
+      );
+
+      if (!mounted) return;
+
+      // Cerrar loading
+      Navigator.pop(context);
+
+      // Actualizar estado local
+      setState(() {
+        _hasReservation = false;
+        _reservedSeats = 0;
+      });
+
+      // Mostrar éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Reserva cancelada exitosamente'),
+            ],
+          ),
+          backgroundColor: AppColors.exito,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Opcional: Regresar al historial después de 1 segundo
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HistorialViajesScreen()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      // Cerrar loading
+      Navigator.pop(context);
+
+      // Mostrar error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Error: $e')),
+            ],
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 }
