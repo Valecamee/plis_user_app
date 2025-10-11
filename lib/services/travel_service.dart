@@ -1,5 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/travel_model.dart';
+// imports al top del archivo
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 /// Servicio para gestionar viajes en Firebase desde la app de usuarios.
 /// - Consultar viajes disponibles.
@@ -278,5 +282,96 @@ class TravelService {
     } catch (e) {
       throw Exception('Error al obtener plazas disponibles: $e');
     }
+  }
+  // ---------------- RESERVAR ASIENTO ----------------
+  /// Reserva 1 asiento (por defecto) de forma atómica.
+  /// passengerData debe contener al menos: { 'userId', 'name', 'phone' (opcional) }
+  static Future<void> reserveSeat({
+    required String travelId,
+    required String userId,
+    required Map<String, dynamic> passengerData,
+    int seats = 1,
+  }) async {
+    final travelRef = _firestore.collection(_collectionName).doc(travelId);
+    final reservationRef = travelRef.collection('reservations').doc(userId);
+    final userBookingRef = _firestore.collection('users').doc(userId).collection('bookings').doc(travelId);
+
+    await _firestore.runTransaction((tx) async {
+      final travelSnap = await tx.get(travelRef);
+      if (!travelSnap.exists) throw Exception('Viaje no existe');
+
+      final int available = (travelSnap.data()?['plazasDisponibles'] ?? 0) as int;
+      if (available < seats) throw Exception('No hay suficientes plazas disponibles');
+
+      final existingReservation = await tx.get(reservationRef);
+      if (existingReservation.exists) throw Exception('Ya reservaste este viaje');
+
+      // Crear la reserva (doc id = userId)
+      final reservationData = <String, dynamic>{
+        'userId': userId,
+        'name': passengerData['name'] ?? '',
+        'phone': passengerData['phone'] ?? '',
+        'seats': seats,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+      tx.set(reservationRef, reservationData);
+
+      // Decrementar plazas disponibles
+      tx.update(travelRef, {'plazasDisponibles': available - seats});
+
+      // Crear referencia en user/bookings para fácil consulta desde usuario
+      final bookingData = <String, dynamic>{
+        'travelId': travelId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'origin': travelSnap.data()?['origen'] ?? '',
+        'destination': travelSnap.data()?['destino'] ?? '',
+        'fechaViaje': travelSnap.data()?['fechaViaje'] ?? null,
+      };
+      tx.set(userBookingRef, bookingData);
+    });
+  }
+
+  // ---------------- CANCELAR RESERVA ----------------
+  static Future<void> cancelReservation({
+    required String travelId,
+    required String userId,
+    int seats = 1,
+  }) async {
+    final travelRef = _firestore.collection(_collectionName).doc(travelId);
+    final reservationRef = travelRef.collection('reservations').doc(userId);
+    final userBookingRef = _firestore.collection('users').doc(userId).collection('bookings').doc(travelId);
+
+    await _firestore.runTransaction((tx) async {
+      final travelSnap = await tx.get(travelRef);
+      if (!travelSnap.exists) throw Exception('Viaje no existe');
+
+      final existingReservation = await tx.get(reservationRef);
+      if (!existingReservation.exists) throw Exception('No existe tu reserva');
+
+      final int available = (travelSnap.data()?['plazasDisponibles'] ?? 0) as int;
+
+      // Borramos la reserva y aumentamos plazas
+      tx.delete(reservationRef);
+      tx.update(travelRef, {'plazasDisponibles': available + seats});
+
+      // Borrar booking del usuario
+      tx.delete(userBookingRef);
+    });
+  }
+
+  // ---------------- STREAM DE PASAJEROS ----------------
+  /// Stream de documentos de reservas para un viaje específico.
+  static Stream<List<Map<String, dynamic>>> getPassengersStream(String travelId) {
+    return _firestore
+        .collection(_collectionName)
+        .doc(travelId)
+        .collection('reservations')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) {
+      final data = Map<String, dynamic>.from(d.data());
+      data['id'] = d.id;
+      return data;
+    }).toList());
   }
 }

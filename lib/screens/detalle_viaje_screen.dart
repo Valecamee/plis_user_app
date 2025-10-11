@@ -2,13 +2,30 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../models/travel_model.dart';
 import '../widgets/route_map_widget.dart';
+// imports necesarios:
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/travel_service.dart';
+import 'historial_viajes_screen.dart';
 
-class DetalleViajeScreen extends StatelessWidget {
+
+class DetalleViajeScreen extends StatefulWidget {
   final Travel travel;
+
   const DetalleViajeScreen({Key? key, required this.travel}) : super(key: key);
 
   @override
+  State<DetalleViajeScreen> createState() => _DetalleViajeScreenState();
+}
+
+class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
+  bool _isReserving = false;
+
+  @override
   Widget build(BuildContext context) {
+    // Accede a widget.travel, no travel directamente
+    final travel = widget.travel;
+
     String origen = travel.origen;
     String destino = travel.destino;
     String conductorNombre = travel.conductorNombre;
@@ -563,14 +580,10 @@ class DetalleViajeScreen extends StatelessWidget {
                       backgroundColor: AppColors.principal,
                     ),
                     onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('Funcionalidad de reserva próximamente'),
-                          backgroundColor: AppColors.principal,
-                        ),
-                      );
+
+                      _mostrarDialogReserva(context);
+
+
                     },
                     child: const Text('Confirmar'),
                   ),
@@ -632,4 +645,118 @@ class DetalleViajeScreen extends StatelessWidget {
       ),
     );
   }
+  Future<void> confirmarReservaViaje(Travel travel, int cantidadPlazas) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final viajeRef = FirebaseFirestore.instance.collection('travels').doc(travel.id);
+
+    print(">>> ID recibido del viaje: ${travel.id}");
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(viajeRef);
+
+      if (!snapshot.exists) throw Exception("El viaje no existe");
+      final data = snapshot.data()!;
+
+      int plazasDisponibles = data['plazasDisponibles'];
+      if (plazasDisponibles < cantidadPlazas) {
+        throw Exception("No hay suficientes plazas disponibles");
+      }
+
+      List usuarios = List.from(data['usuarios'] ?? []);
+      // Cada elemento será un mapa { id: userId, plazas: cantidad }
+      usuarios.add({
+        'id': user.uid,
+        'plazas': cantidadPlazas,
+      });
+
+      transaction.update(viajeRef, {
+        'usuarios': usuarios,
+        'plazasDisponibles': plazasDisponibles - cantidadPlazas,
+      });
+    });
+
+    // Si todo sale bien:
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Reserva confirmada ✅")),
+      );
+
+      // Espera un segundo y navega a la pantalla de “Mis viajes”
+      await Future.delayed(const Duration(seconds: 1));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MisViajesScreen()),
+      );
+    }
+
+    print(">>> Reserva confirmada correctamente ✅");
+  }
+
+
+  void _mostrarDialogReserva(BuildContext context) {
+    int cantidadPlazas = 1;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Confirmar reserva"),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Selecciona cuántas plazas deseas reservar:"),
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.remove),
+                        onPressed: () {
+                          if (cantidadPlazas > 1) {
+                            setState(() => cantidadPlazas--);
+                          }
+                        },
+                      ),
+                      Text('$cantidadPlazas', style: TextStyle(fontSize: 20)),
+                      IconButton(
+                        icon: Icon(Icons.add),
+                        onPressed: () {
+                          if (cantidadPlazas < widget.travel.plazasDisponibles) {
+                            setState(() => cantidadPlazas++);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              child: Text("Cancelar"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              child: Text("Confirmar"),
+              onPressed: () async {
+                Navigator.pop(context);
+                await confirmarReservaViaje(widget.travel, cantidadPlazas);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Reserva confirmada ✅")),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
 }
