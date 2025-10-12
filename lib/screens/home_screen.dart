@@ -4,7 +4,6 @@ import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
 import '../services/travel_query_service.dart';
 import '../models/travel_model.dart';
-import 'auth/welcome_screen.dart';
 import 'detalle_viaje_screen.dart';
 import 'historial_viajes_screen.dart';
 import "../../widgets/search/advanced_search_widget.dart";
@@ -33,17 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     super.dispose();
   }
-
-  Future<void> _handleSignOut() async {
-    await _authService.signOut();
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-            (route) => false,
-      );
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -108,15 +96,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontSize: 16, color: Colors.white70)),
                         ],
                       ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12)),
-                      child: IconButton(
-                          onPressed: _handleSignOut,
-                          icon: const Icon(Icons.exit_to_app,
-                              color: Colors.white)),
                     ),
                   ],
                 ),

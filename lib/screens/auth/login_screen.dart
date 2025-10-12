@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../utils/app_colors.dart';
 import 'register_screen.dart';
 import '../home_screen.dart';
+import '../main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Login exitoso - navegar al home
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     } catch (e) {
