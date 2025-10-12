@@ -6,6 +6,7 @@ import '../../widgets/common/link_text.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../constants/terms_and_conditions.dart';
+import '../main_screen.dart';
 import 'login_screen.dart';
 import 'terms_screen.dart';
 import '../home_screen.dart';
@@ -90,9 +91,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           MaterialPageRoute(
             builder: (context) => PermissionsScreen(
               onNext: () {
-                // Después de conceder permisos, ir al home
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  MaterialPageRoute(builder: (context) => const MainScreen()),
                 );
               },
             ),
