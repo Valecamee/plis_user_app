@@ -4,6 +4,7 @@ import '../utils/app_colors.dart';
 import '../services/travel_booking_service.dart';
 import '../models/travel_model.dart';
 import 'detalle_viaje_screen.dart';
+import 'viaje_en_curso_usuario_screen.dart';
 
 /// Pantalla de historial de viajes para USUARIOS (pasajeros)
 /// Muestra los viajes que el usuario ha reservado como pasajero
@@ -16,6 +17,8 @@ class HistorialViajesScreen extends StatefulWidget {
 
 class _HistorialViajesScreenState extends State<HistorialViajesScreen> {
   String _filtroActual = 'programados'; // programados, completados
+
+  Travel? _viajeEnCurso;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +130,24 @@ class _HistorialViajesScreenState extends State<HistorialViajesScreen> {
                 ),
               ),
 
+              // Agregar tarjeta de viaje en curso AQUÍ
+              StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: TravelBookingService.getUserReservedTravelsStream(user.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final viajeEnCurso = snapshot.data!.firstWhere(
+                            (item) => (item['travel'] as Travel).estado == EstadoViaje.en_curso,
+                        orElse: () => {},
+                      );
+
+                      if (viajeEnCurso.isNotEmpty) {
+                        final Travel travel = viajeEnCurso['travel'];
+                        return _buildViajeEnCursoCard(travel);
+                      }
+                    }
+                    return const SizedBox.shrink();
+                  },
+              ),
               // Filtros
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -209,6 +230,86 @@ class _HistorialViajesScreenState extends State<HistorialViajesScreen> {
       ),
     );
   }
+
+  Widget _buildViajeEnCursoCard(Travel viaje) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.exito.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.exito.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.play_circle_fill,
+              color: AppColors.exito,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Viaje en curso',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.titulo,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${viaje.origen} → ${viaje.destino}',
+                  style: const TextStyle(
+                    color: AppColors.subtitulo,
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ViajeEnCursoUsuarioScreen(travel: viaje),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.exito,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Ver'),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildFilterChip(String label, String value) {
     final isSelected = _filtroActual == value;
