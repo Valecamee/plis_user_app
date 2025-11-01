@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/travel_booking_service.dart';
 import 'historial_viajes_screen.dart';
+import 'driver_profile_screen.dart';
 
 
 class DetalleViajeScreen extends StatefulWidget {
@@ -92,56 +93,145 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     bool viajeDisponible = travel.estaDisponible;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalle del Viaje'),
-        backgroundColor: AppColors.principal,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () => _compartirViaje(context),
-            tooltip: 'Compartir viaje',
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.principal,
+              AppColors.secundario,
+              AppColors.gris50,
+            ],
+            stops: [0.0, 0.3, 1.0],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!viajeDisponible) _buildStatusBanner(),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header personalizado
+              _buildHeader(context),
 
-                    // Banner de reserva existente
-                    if (_hasReservation) _buildReservationBanner(),
+              const SizedBox(height: 16),
 
-                    _buildConductorSection(conductorNombre, conductorApellido),
-                    const SizedBox(height: 20),
-                    _buildRutaSection(origen, destino),
-                    const SizedBox(height: 20),
-                    _buildFechaHoraSection(fechaViaje, horaViaje),
-                    const SizedBox(height: 20),
-                    _buildDetallesSection(plazasDisponibles, vehiculoPlaca),
-                    const SizedBox(height: 20),
-                    _buildRutaInfoSection(distanciaTexto, duracionTexto, tipoEquipaje),
-                    const SizedBox(height: 20),
-                    RouteMapWidget(
-                      travel: travel,
-                      height: 300,
+              // Contenido principal
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: AppColors.gris50,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+
+                          if (!viajeDisponible) _buildStatusBanner(),
+
+                          // Banner de reserva existente
+                          if (_hasReservation) _buildReservationBanner(),
+
+                          _buildConductorSection(conductorNombre, conductorApellido),
+                          const SizedBox(height: 20),
+                          _buildRutaSection(origen, destino),
+                          const SizedBox(height: 20),
+                          _buildFechaHoraSection(fechaViaje, horaViaje),
+                          const SizedBox(height: 20),
+                          _buildDetallesSection(plazasDisponibles, vehiculoPlaca),
+                          const SizedBox(height: 20),
+                          _buildRutaInfoSection(distanciaTexto, duracionTexto, tipoEquipaje),
+                          const SizedBox(height: 20),
+                          RouteMapWidget(
+                            travel: travel,
+                            height: 300,
+                          ),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 100),
-                  ],
+                  ),
                 ),
               ),
+
+              // Barra inferior con botón dinámico
+              _buildBottomBar(context, precio.toInt(), viajeDisponible),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          // Botón de regresar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.principal),
+              onPressed: () => Navigator.pop(context),
             ),
           ),
-
-          // Barra inferior con botón dinámico
-          _buildBottomBar(context, precio.toInt(), viajeDisponible),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Detalle del viaje',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Información completa',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Botón de compartir
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.share, color: AppColors.principal),
+              onPressed: () => _compartirViaje(context),
+              tooltip: 'Compartir viaje',
+            ),
+          ),
         ],
       ),
     );
@@ -403,36 +493,64 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          backgroundColor: AppColors.principal,
-          radius: 24,
-          child: Text(
-            nombre.isNotEmpty ? nombre[0].toUpperCase() : 'C',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        title: Text(
-          '$nombre $apellido',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: AppColors.titulo,
-          ),
-        ),
-        subtitle: const Text('Conductor',
-            style: TextStyle(color: AppColors.subtitulo)),
-        trailing: TextButton.icon(
-          onPressed: () => _contactarConductor(nombre),
-          icon: const Icon(Icons.message, size: 18, color: AppColors.principal),
-          label: const Text('Contactar'),
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.principal,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _verPerfilConductor(),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppColors.principal,
+                radius: 24,
+                child: Text(
+                  nombre.isNotEmpty ? nombre[0].toUpperCase() : 'C',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$nombre $apellido',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.titulo,
+                      ),
+                    ),
+                    const Text(
+                      'Conductor',
+                      style: TextStyle(color: AppColors.subtitulo),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => _contactarConductor(nombre),
+                    icon: const Icon(Icons.message, size: 18, color: AppColors.principal),
+                    label: const Text('Contactar'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.principal,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.subtitulo,
+                    size: 24,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -652,6 +770,19 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
       const SnackBar(
         content: Text('Función de compartir próximamente'),
         duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _verPerfilConductor() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DriverProfileScreen(
+          conductorId: widget.travel.conductorId,
+          conductorNombre: widget.travel.conductorNombre,
+          conductorApellido: widget.travel.conductorApellido,
+        ),
       ),
     );
   }
