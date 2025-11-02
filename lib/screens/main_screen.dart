@@ -1,6 +1,6 @@
 // lib/screens/main_screen.dart
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 import 'home_screen.dart';
 import 'historial_viajes_screen.dart';
 import 'soporte_screen.dart';
@@ -47,56 +47,10 @@ class _MainScreenState extends State<MainScreen> {
         children: _screens,
       ),
 
-      // BottomNavigationBar con sombra superior
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.principal,
-          unselectedItemColor: AppColors.gris400,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w400,
-          ),
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Inicio',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.directions_car_outlined),
-              activeIcon: Icon(Icons.directions_car),
-              label: 'Mis Viajes',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.support_agent_outlined),
-              activeIcon: Icon(Icons.support_agent),
-              label: 'Soporte',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Perfil',
-            ),
-          ],
-        ),
+      // Barra de navegación personalizada
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }
