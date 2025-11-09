@@ -143,29 +143,18 @@ class _AutocompleteFieldState extends State<AutocompleteField> {
                     shrinkWrap: true,
                     itemBuilder: (BuildContext context, int index) {
                       final String option = options.elementAt(index);
-                      return InkWell(
-                        onTap: () => onSelected(option),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(widget.icon, size: 18, color: AppColors.principal),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  option,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.titulo,
-                                  ),
-                                ),
-                              ),
-                            ],
+                      return ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        leading: Icon(widget.icon, size: 18, color: AppColors.principal),
+                        title: Text(
+                          option,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.titulo,
                           ),
                         ),
+                        onTap: () => onSelected(option),
                       );
                     },
                   ),

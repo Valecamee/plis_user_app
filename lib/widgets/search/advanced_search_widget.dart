@@ -357,18 +357,72 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                         Row(
                           children: [
                             Expanded(
-                              child: _buildTimeSelector(
-                                label: 'Hora desde',
-                                time: _horaMinima,
-                                onTap: () => _selectTime(true, setModalState),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Hora desde', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo)),
+                                  const SizedBox(height: 8),
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () => _selectTime(true, setModalState),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: AppColors.gris300),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.access_time, size: 18, color: AppColors.gris400),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _horaMinima != null ? '${_horaMinima!.hour.toString().padLeft(2, '0')}:${_horaMinima!.minute.toString().padLeft(2, '0')}' : '--:--',
+                                              style: TextStyle(color: _horaMinima != null ? AppColors.titulo : AppColors.gris400),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildTimeSelector(
-                                label: 'Hora hasta',
-                                time: _horaMaxima,
-                                onTap: () => _selectTime(false, setModalState),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Hora hasta', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo)),
+                                  const SizedBox(height: 8),
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () => _selectTime(false, setModalState),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: AppColors.gris300),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.access_time, size: 18, color: AppColors.gris400),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _horaMaxima != null ? '${_horaMaxima!.hour.toString().padLeft(2, '0')}:${_horaMaxima!.minute.toString().padLeft(2, '0')}' : '--:--',
+                                              style: TextStyle(color: _horaMaxima != null ? AppColors.titulo : AppColors.gris400),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -480,68 +534,41 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo),
         ),
         const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _selectDate(setModalState),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.gris300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 18, color: AppColors.gris400),
-                const SizedBox(width: 12),
-                Text(
-                  _selectedFecha != null
-                      ? '${_selectedFecha!.day.toString().padLeft(2, '0')}/${_selectedFecha!.month.toString().padLeft(2, '0')}/${_selectedFecha!.year}'
-                      : 'Seleccionar fecha',
-                  style: TextStyle(color: _selectedFecha != null ? AppColors.titulo : AppColors.gris400),
-                ),
-                const Spacer(),
-                if (_selectedFecha != null)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedFecha = null);
-                      setModalState(() => _selectedFecha = null);
-                    },
-                    child: const Icon(Icons.close, size: 18, color: AppColors.gris400),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _selectDate(setModalState),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.gris300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  const Icon(Icons.calendar_today, size: 18, color: AppColors.gris400),
+                  const SizedBox(width: 12),
+                  Text(
+                    _selectedFecha != null
+                        ? '${_selectedFecha!.day.toString().padLeft(2, '0')}/${_selectedFecha!.month.toString().padLeft(2, '0')}/${_selectedFecha!.year}'
+                        : 'Seleccionar fecha',
+                    style: TextStyle(color: _selectedFecha != null ? AppColors.titulo : AppColors.gris400),
                   ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimeSelector({
-    required String label,
-    required TimeOfDay? time,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.gris300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.access_time, size: 18, color: AppColors.gris400),
-                const SizedBox(width: 8),
-                Text(
-                  time != null ? '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}' : '--:--',
-                  style: TextStyle(color: time != null ? AppColors.titulo : AppColors.gris400),
-                ),
-              ],
+                  const Spacer(),
+                  if (_selectedFecha != null)
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18, color: AppColors.gris400),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        setState(() => _selectedFecha = null);
+                        setModalState(() => _selectedFecha = null);
+                      },
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -556,28 +583,41 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
         const Text('Asientos mínimos necesarios', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo)),
         const SizedBox(height: 8),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(3, (index) {
             final seats = index + 1;
             final isSelected = _asientosMinimos == seats;
+            
             return Expanded(
               child: Padding(
-                padding: EdgeInsets.only(right: index < 2 ? 8 : 0),
-                child: InkWell(
-                  onTap: () {
-                    setState(() => _asientosMinimos = isSelected ? null : seats);
-                    setModalState(() => _asientosMinimos = isSelected ? null : seats);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.principal.withOpacity(0.1) : Colors.transparent,
-                      border: Border.all(color: isSelected ? AppColors.principal : AppColors.gris300, width: isSelected ? 2 : 1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$seats',
-                        style: TextStyle(fontSize: 16, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400, color: isSelected ? AppColors.principal : AppColors.titulo),
+                padding: EdgeInsets.only(left: index > 0 ? 8 : 0),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () {
+                      setState(() => _asientosMinimos = isSelected ? null : seats);
+                      setModalState(() => _asientosMinimos = isSelected ? null : seats);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.principal.withOpacity(0.1) : Colors.transparent,
+                        border: Border.all(
+                          color: isSelected ? AppColors.principal : AppColors.gris300,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$seats',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                            color: isSelected ? AppColors.principal : AppColors.titulo,
+                          ),
+                        ),
                       ),
                     ),
                   ),
