@@ -2,7 +2,9 @@
 // lib/widgets/search/advanced_search_widget.dart
 import 'package:flutter/material.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/keyboard_utils.dart';
 import '../../services/search_service.dart';
+import 'autocomplete_field.dart';
 
 /// Widget de búsqueda avanzada con filtros múltiples
 class AdvancedSearchWidget extends StatefulWidget {
@@ -38,7 +40,6 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
   double _minPrice = 0;
   double _maxPrice = 100000;
 
-  bool _showFilters = false;
   bool _isLoadingData = false;
 
   @override
@@ -63,8 +64,9 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
         SearchService.getPriceRange(),
       ]);
       setState(() {
-        _origenes = results[0] as List<String>;
-        _destinos = results[1] as List<String>;
+        // Limpiar y extraer solo nombres de ciudades
+        _origenes = _cleanCityNames(results[0] as List<String>);
+        _destinos = _cleanCityNames(results[1] as List<String>);
         final priceRange = results[2] as Map<String, double>;
         _minPrice = priceRange['min']!;
         _maxPrice = priceRange['max']!;
@@ -77,26 +79,74 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
     }
   }
 
-  void _performSearch() {
-    // Cerrar el teclado suavemente
-    _searchFocusNode.unfocus();
-    FocusScope.of(context).unfocus();
+  /// Limpia y extrae solo los nombres de ciudades principales
+  /// Ejemplo: "Cali, Valle del Cauca, Colombia" -> "Cali"
+  ///          "Av Caracas #40a-39, Bogotá" -> "Bogotá"
+  List<String> _cleanCityNames(List<String> rawLocations) {
+    Set<String> cleanedCities = {};
     
-    // Pequeño delay para evitar overflow durante la transición del teclado
-    Future.delayed(const Duration(milliseconds: 100), () {
-      final filters = <String, dynamic>{};
-      if (_searchController.text.isNotEmpty) filters['searchText'] = _searchController.text;
-      if (_selectedOrigen != null) filters['origen'] = _selectedOrigen;
-      if (_selectedDestino != null) filters['destino'] = _selectedDestino;
-      if (_precioMaximo != null && _precioMaximo! < _maxPrice) filters['precioMaximo'] = _precioMaximo;
-      if (_selectedFecha != null) filters['fecha'] = _selectedFecha;
-      if (_horaMinima != null) filters['horaMinima'] = _horaMinima;
-      if (_horaMaxima != null) filters['horaMaxima'] = _horaMaxima;
-      if (_asientosMinimos != null && _asientosMinimos! > 0) filters['asientosMinimos'] = _asientosMinimos;
+    for (String location in rawLocations) {
+      // Intentar extraer el nombre de la ciudad
+      String cityName = _extractCityName(location);
+      if (cityName.isNotEmpty) {
+        cleanedCities.add(cityName);
+      }
+    }
+    
+    // Convertir a lista y ordenar alfabéticamente
+    List<String> sortedCities = cleanedCities.toList()..sort();
+    return sortedCities;
+  }
 
-      setState(() => _showFilters = false);
-      widget.onSearch(_searchController.text, filters);
-    });
+  /// Extrae el nombre de la ciudad de una dirección completa
+  String _extractCityName(String location) {
+    // Eliminar espacios extra
+    String cleaned = location.trim();
+    
+    // Si contiene coma, tomar la primera parte antes de la coma
+    // "Cali, Valle del Cauca" -> "Cali"
+    if (cleaned.contains(',')) {
+      List<String> parts = cleaned.split(',');
+      
+      // Si la primera parte parece una dirección (contiene #, números al inicio)
+      // tomar la segunda parte
+      String firstPart = parts[0].trim();
+      if (firstPart.contains('#') || firstPart.contains('Calle') || 
+          firstPart.contains('Carrera') || firstPart.contains('Av ') ||
+          RegExp(r'^\d').hasMatch(firstPart)) {
+        // Es una dirección, tomar la segunda parte si existe
+        if (parts.length > 1) {
+          return parts[1].trim();
+        }
+      }
+      
+      // Si no, la primera parte es la ciudad
+      return firstPart;
+    }
+    
+    // Si no tiene coma, retornar tal cual (probablemente ya es solo ciudad)
+    return cleaned;
+  }
+
+  void _performSearch() {
+    // Usar KeyboardUtils para cerrar el teclado de forma segura
+    KeyboardUtils.hideKeyboardAndThen(
+      context,
+      () {
+        final filters = <String, dynamic>{};
+        if (_searchController.text.isNotEmpty) filters['searchText'] = _searchController.text;
+        if (_selectedOrigen != null) filters['origen'] = _selectedOrigen;
+        if (_selectedDestino != null) filters['destino'] = _selectedDestino;
+        if (_precioMaximo != null && _precioMaximo! < _maxPrice) filters['precioMaximo'] = _precioMaximo;
+        if (_selectedFecha != null) filters['fecha'] = _selectedFecha;
+        if (_horaMinima != null) filters['horaMinima'] = _horaMinima;
+        if (_horaMaxima != null) filters['horaMaxima'] = _horaMaxima;
+        if (_asientosMinimos != null && _asientosMinimos! > 0) filters['asientosMinimos'] = _asientosMinimos;
+
+        widget.onSearch(_searchController.text, filters);
+      },
+      delayMs: 100, // Delay más corto para búsqueda
+    );
   }
 
   void _clearFilters() {
@@ -109,7 +159,6 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
       _horaMinima = null;
       _horaMaxima = null;
       _asientosMinimos = null;
-      _showFilters = false;
     });
     if (widget.onClear != null) widget.onClear!();
   }
@@ -157,147 +206,151 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final mediaQuery = MediaQuery.of(context);
-        final keyboardHeight = mediaQuery.viewInsets.bottom;
-        final screenHeight = mediaQuery.size.height;
-        final topPadding = mediaQuery.padding.top;
-        final bottomPadding = mediaQuery.padding.bottom;
-        
-        // Altura disponible considerando teclado y paddings del sistema
-        final availableHeight = screenHeight - keyboardHeight - topPadding - bottomPadding;
-        
-        return AnimatedPadding(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.only(bottom: keyboardHeight),
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 16),
-                // Barra de búsqueda principal
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: AppColors.principal),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          decoration: const InputDecoration(
-                            hintText: '¿A dónde quieres ir?',
-                            hintStyle: TextStyle(color: AppColors.gris400, fontSize: 16),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          onSubmitted: (_) {
-                            _searchFocusNode.unfocus();
-                            _performSearch();
-                          },
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          _showFilters ? Icons.filter_alt : Icons.tune,
-                          color: _showFilters ? AppColors.principal : AppColors.gris400,
-                        ),
-                        onPressed: () => setState(() => _showFilters = !_showFilters),
-                      ),
-                    ],
-                  ),
-                ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.search, color: AppColors.principal),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              decoration: const InputDecoration(
+                hintText: '¿A dónde quieres ir?',
+                hintStyle: TextStyle(color: AppColors.gris400, fontSize: 16),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              onSubmitted: (_) {
+                KeyboardUtils.hideKeyboard(context);
+                _performSearch();
+              },
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.tune,
+              color: AppColors.gris400,
+            ),
+            onPressed: () => _openFiltersModal(context),
+          ),
+        ],
+      ),
+    );
+  }
 
-                // Panel de filtros avanzados con altura limitada y scroll interno
-                if (_showFilters) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    constraints: BoxConstraints(
-                      // Limitar altura según espacio disponible
-                      maxHeight: availableHeight * 0.55,
+  void _openFiltersModal(BuildContext context) {
+    KeyboardUtils.hideKeyboard(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildFiltersModal(context),
+    );
+  }
+
+  Widget _buildFiltersModal(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Handle del modal
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.gris300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Filtros avanzados',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.titulo,
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Filtros avanzados',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.titulo,
-                              ),
-                            ),
-                            TextButton(onPressed: _clearFilters, child: const Text('Limpiar')),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Contenido con scroll
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
 
                         // Origen y Destino
                         Row(
                           children: [
                             Expanded(
-                              child: _buildDropdown(
+                              child: AutocompleteField(
                                 label: 'Origen',
-                                value: _selectedOrigen,
-                                items: _origenes,
-                                onChanged: (value) => setState(() => _selectedOrigen = value),
+                                hint: 'Seleccionar origen',
                                 icon: Icons.radio_button_checked,
+                                options: _origenes,
+                                initialValue: _selectedOrigen,
+                                onChanged: (value) => setState(() => _selectedOrigen = value),
                               ),
                             ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: _buildDropdown(
+                              child: AutocompleteField(
                                 label: 'Destino',
-                                value: _selectedDestino,
-                                items: _destinos,
-                                onChanged: (value) => setState(() => _selectedDestino = value),
+                                hint: 'Seleccionar destino',
                                 icon: Icons.location_on,
+                                options: _destinos,
+                                initialValue: _selectedDestino,
+                                onChanged: (value) => setState(() => _selectedDestino = value),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 12),
 
                         // Fecha
                         _buildDateSelector(),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 12),
 
                         // Precio máximo
                         _buildPriceSlider(),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 12),
 
                         // Hora mínima y máxima
                         Row(
@@ -319,17 +372,60 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 12),
 
                         // Asientos mínimos
                         _buildSeatsSelector(),
-                        const SizedBox(height: 20),
-
-                        // Botón de búsqueda
-                        SizedBox(
-                          width: double.infinity,
+                        const SizedBox(height: 80), // Espacio para el botón fijo
+                      ],
+                    ),
+                  ),
+                  // Botones fijos en la parte inferior
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _clearFilters();
+                              Navigator.pop(context);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(color: AppColors.principal),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Limpiar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.principal,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
                           child: ElevatedButton(
-                            onPressed: _performSearch,
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _performSearch();
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.principal,
                               foregroundColor: Colors.white,
@@ -339,7 +435,7 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                               ),
                             ),
                             child: const Text(
-                              'Buscar viajes',
+                              'Aplicar filtros',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -347,60 +443,13 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                             ),
                           ),
                         ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
                 ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }  Widget _buildDropdown({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.gris300),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: AppColors.gris400),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: value,
-                    hint: Text('Seleccionar', style: TextStyle(color: AppColors.gris400)),
-                    isExpanded: true,
-                    items: items.map((String item) {
-                      return DropdownMenuItem<String>(value: item, child: Text(item));
-                    }).toList(),
-                    onChanged: onChanged,
-                  ),
-                ),
               ),
-            ],
-          ),
-        ),
-      ],
+            );
+      },
     );
   }
 

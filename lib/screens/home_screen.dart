@@ -101,21 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Barra de búsqueda
+              // Barra de búsqueda simple
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                child: _showSearchResults
-                    ? BusquedaResultadosWidget(
-                  travels: _travels,
-
-                  onClose: () {
-                    setState(() {
-                      _showSearchResults = false;
-                      _travels = [];
-                    });
-                  },
-                )
-                    : AdvancedSearchWidget(
+                child: AdvancedSearchWidget(
                   onSearch: (query, filters) async {
                     try {
                       final results = await SearchService.advancedSearch(
@@ -138,6 +127,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ),
+
+              // Resultados de búsqueda - Envuelto en Expanded
+              if (_showSearchResults)
+                Expanded(
+                  child: BusquedaResultadosWidget(
+                    travels: _travels,
+                    onClose: () {
+                      setState(() {
+                        _showSearchResults = false;
+                        _travels = [];
+                      });
+                    },
+                  ),
+                ),
 
 
               const SizedBox(height: 24),
