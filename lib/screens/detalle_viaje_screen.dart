@@ -131,7 +131,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                         children: [
                           const SizedBox(height: 8),
 
-                          if (!viajeDisponible) _buildStatusBanner(),
+                          // Solo mostrar "no disponible" si NO tiene reserva
+                          if (!viajeDisponible && !_hasReservation) _buildStatusBanner(),
 
                           // Banner de reserva existente
                           if (_hasReservation) _buildReservationBanner(),
@@ -266,55 +267,189 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
   }
 
   Widget _buildReservationBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.principal.withOpacity(0.1),
-            AppColors.secundario.withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.principal.withOpacity(0.3), width: 2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.principal,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '¡Ya tienes una reserva!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.titulo,
-                  ),
-                ),
-                Text(
-                  'Has reservado $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.subtitulo,
-                  ),
-                ),
+    // Calcular fecha límite de cancelación
+    final now = DateTime.now();
+    final travelDateTime = DateTime(
+      widget.travel.fechaViaje.year,
+      widget.travel.fechaViaje.month,
+      widget.travel.fechaViaje.day,
+      widget.travel.horaViaje.hour,
+      widget.travel.horaViaje.minute,
+    );
+    
+    final hoursUntilTravel = travelDateTime.difference(now).inHours;
+    
+    int freeCancellationHours;
+    if (hoursUntilTravel >= 168) {
+      freeCancellationHours = 48;
+    } else if (hoursUntilTravel >= 48 && hoursUntilTravel < 168) {
+      freeCancellationHours = 24;
+    } else {
+      freeCancellationHours = 1;
+    }
+    
+    final deadlineDate = travelDateTime.subtract(Duration(hours: freeCancellationHours));
+    final deadlineFormatted = _formatDateTime(deadlineDate);
+    final canCancelFree = now.isBefore(deadlineDate);
+    
+    // 🔍 DEBUG: Ver estado de cancelación
+    print('═══════════════════════════════════════');
+    print('📋 ESTADO DE RESERVA EXISTENTE');
+    print('═══════════════════════════════════════');
+    print('Ahora: ${now.toString()}');
+    print('Plazo límite: ${deadlineDate.toString()}');
+    print('¿Puede cancelar gratis?: ${canCancelFree ? "SÍ ✅" : "NO ⚠️"}');
+    if (canCancelFree) {
+      final hoursRemaining = deadlineDate.difference(now).inHours;
+      print('Horas restantes para cancelar gratis: $hoursRemaining');
+    } else {
+      final hoursLate = now.difference(deadlineDate).inHours;
+      print('Horas después del plazo: $hoursLate → Reembolso 50%');
+    }
+    print('═══════════════════════════════════════\n');
+    
+    return Column(
+      children: [
+        // Banner principal de reserva
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.principal.withOpacity(0.1),
+                AppColors.secundario.withOpacity(0.1),
               ],
             ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.principal.withOpacity(0.3), width: 2),
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.principal,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '¡Ya tienes una reserva!',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.titulo,
+                      ),
+                    ),
+                    Text(
+                      'Has reservado $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.subtitulo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Card de política de cancelación
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: canCancelFree 
+                ? Color(0xFFECFDF5) // Verde muy claro
+                : Color(0xFFFEF3C7), // Amarillo claro
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: canCancelFree 
+                  ? Color(0xFF059669)
+                  : AppColors.advertencia,
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    canCancelFree ? Icons.event_available : Icons.access_time,
+                    color: canCancelFree 
+                        ? Color(0xFF059669)
+                        : AppColors.advertencia,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      canCancelFree 
+                          ? 'Puedes cancelar gratis hasta:'
+                          : 'Cancelación con penalización',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.titulo,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  deadlineFormatted,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: canCancelFree 
+                        ? Color(0xFF059669)
+                        : AppColors.advertencia,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              _buildPolicyRow(
+                Icons.check_circle,
+                'Antes de esa fecha: Reembolso del 100%',
+                Color(0xFF059669),
+              ),
+              const SizedBox(height: 6),
+              _buildPolicyRow(
+                Icons.warning_amber,
+                'Después de esa fecha: Reembolso del 50%',
+                AppColors.advertencia,
+              ),
+              const SizedBox(height: 6),
+              _buildPolicyRow(
+                Icons.cancel,
+                'Si no te presentas: Sin reembolso',
+                AppColors.error,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -428,59 +563,72 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                children: [
-                  Icon(Icons.calendar_today,
-                      color: AppColors.principal, size: 28),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Fecha',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.subtitulo,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.principal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.calendar_today,
+                        color: AppColors.principal, size: 32),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Fecha',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.subtitulo,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    fecha,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.titulo,
+                    const SizedBox(height: 4),
+                    Text(
+                      fecha,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.titulo,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            Container(
-              width: 1,
-              height: 60,
-              color: AppColors.gris300,
-            ),
+            const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                children: [
-                  Icon(Icons.access_time, color: AppColors.principal, size: 28),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Hora',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.subtitulo,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.oceano.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.access_time,
+                        color: AppColors.oceano, size: 32),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Hora',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.subtitulo,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    hora,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.titulo,
+                    const SizedBox(height: 4),
+                    Text(
+                      hora,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.titulo,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -578,19 +726,86 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildInfoItem(
-                    icon: Icons.event_seat,
-                    label: 'Asientos disponibles',
-                    value: '$plazas',
-                    isAvailable: plazas > 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: plazas > 0 
+                          ? AppColors.verdePlis.withOpacity(0.1)
+                          : AppColors.gris100,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: plazas > 0
+                            ? AppColors.verdePlis.withOpacity(0.3)
+                            : AppColors.gris300,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.event_seat,
+                          color: plazas > 0 ? AppColors.verdePlis : AppColors.gris400,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Asientos',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.subtitulo,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$plazas',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: plazas > 0 ? AppColors.verdePlis : AppColors.gris500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildInfoItem(
-                    icon: Icons.directions_car,
-                    label: 'Placa del vehículo',
-                    value: placa,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.secundario.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.secundario.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.directions_car,
+                          color: AppColors.secundario,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Placa',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.subtitulo,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          placa,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.titulo,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -792,76 +1007,435 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
   }
 
   void _reservarViaje(BuildContext context, int precio) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes iniciar sesión para reservar')),
+      );
+      return;
+    }
+
+    // Mostrar indicador de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    // Obtener información del usuario desde Firebase
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get()
+        .then((userDoc) {
+      // Cerrar indicador de carga
+      Navigator.pop(context);
+
+      if (!userDoc.exists) {
+        if (context.mounted) {
+          // Intentar con datos básicos del usuario
+          _showSeatSelectionModal(
+            context,
+            precio,
+            user.displayName ?? 'Usuario',
+            user.phoneNumber ?? '',
+            user.uid,
+          );
+          
+          // Mostrar advertencia
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Usando información básica del perfil'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      final userData = userDoc.data()!;
+      final userName = userData['nombre'] ?? user.displayName ?? 'Usuario';
+      final userPhone = userData['telefono'] ?? user.phoneNumber ?? '';
+
+      // Mostrar modal para seleccionar cantidad de asientos
+      _showSeatSelectionModal(context, precio, userName, userPhone, user.uid);
+    }).catchError((error) {
+      // Cerrar indicador de carga
+      Navigator.pop(context);
+      
+      if (context.mounted) {
+        // En caso de error, usar datos básicos
+        _showSeatSelectionModal(
+          context,
+          precio,
+          user.displayName ?? 'Usuario',
+          user.phoneNumber ?? '',
+          user.uid,
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar perfil: ${error.toString()}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    });
+  }
+
+  void _showSeatSelectionModal(
+    BuildContext context,
+    int precio,
+    String userName,
+    String userPhone,
+    String userId,
+  ) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.gris300,
-                borderRadius: BorderRadius.circular(2),
+      builder: (context) {
+        int selectedSeats = 1;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.gris300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Icon(
+                    Icons.airline_seat_recline_normal,
+                    size: 48,
+                    color: AppColors.principal,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '¿Cuántos asientos necesitas?',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.titulo,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: selectedSeats > 1
+                            ? () {
+                                setModalState(() {
+                                  selectedSeats--;
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.remove_circle_outline),
+                        iconSize: 40,
+                        color: AppColors.principal,
+                      ),
+                      const SizedBox(width: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.principal.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$selectedSeats',
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.principal,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      IconButton(
+                        onPressed: selectedSeats < widget.travel.plazasDisponibles
+                            ? () {
+                                setModalState(() {
+                                  selectedSeats++;
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.add_circle_outline),
+                        iconSize: 40,
+                        color: AppColors.principal,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${widget.travel.plazasDisponibles} asientos disponibles',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.subtitulo,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.principal,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Usar la lógica original de reserva
+                        _confirmarReservaDirecta(selectedSeats);
+                      },
+                      child: Text(
+                        'Continuar (Total: \$${precio * selectedSeats})',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
-            const Icon(
-              Icons.info_outline,
-              size: 48,
-              color: AppColors.principal,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Confirmar reserva',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.titulo,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Total a pagar: \$${precio.toString()}',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.subtitulo,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Método simplificado que usa la lógica original de reserva
+  void _confirmarReservaDirecta(int cantidadPlazas) {
+    // Calcular fecha límite de cancelación gratuita
+    final now = DateTime.now();
+    final travelDateTime = DateTime(
+      widget.travel.fechaViaje.year,
+      widget.travel.fechaViaje.month,
+      widget.travel.fechaViaje.day,
+      widget.travel.horaViaje.hour,
+      widget.travel.horaViaje.minute,
+    );
+    
+    final hoursUntilTravel = travelDateTime.difference(now).inHours;
+    
+    // 🔍 DEBUG: Ver cálculos en consola
+    print('═══════════════════════════════════════');
+    print('📅 CÁLCULO DE POLÍTICA DE CANCELACIÓN');
+    print('═══════════════════════════════════════');
+    print('Ahora: ${now.toString()}');
+    print('Viaje: ${travelDateTime.toString()}');
+    print('Horas hasta el viaje: $hoursUntilTravel');
+    
+    // Determinar ventana de cancelación según política
+    int freeCancellationHours;
+    if (hoursUntilTravel >= 168) { // >= 7 días
+      freeCancellationHours = 48;
+      print('✅ Categoría: RESERVA ANTICIPADA (≥7 días)');
+      print('   → Plazo de cancelación gratis: 48 horas antes');
+    } else if (hoursUntilTravel >= 48 && hoursUntilTravel < 168) { // 2-7 días
+      freeCancellationHours = 24;
+      print('⚠️  Categoría: RESERVA MEDIA (2-7 días)');
+      print('   → Plazo de cancelación gratis: 24 horas antes');
+    } else { // < 2 días
+      freeCancellationHours = 1;
+      print('🔴 Categoría: RESERVA PRÓXIMA (<2 días)');
+      print('   → Plazo de cancelación gratis: 1 hora antes');
+    }
+    
+    final deadlineDate = travelDateTime.subtract(Duration(hours: freeCancellationHours));
+    final deadlineFormatted = _formatDateTime(deadlineDate);
+    
+    print('⏰ Fecha límite cancelación gratis: ${deadlineDate.toString()}');
+    print('   Formateado: $deadlineFormatted');
+    print('═══════════════════════════════════════\n');
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.event_seat, color: AppColors.principal),
+              SizedBox(width: 12),
+              Text("Confirmar reserva"),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
+                Text(
+                  "Reservarás $cantidadPlazas ${cantidadPlazas == 1 ? 'asiento' : 'asientos'}",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.principal,
+                const SizedBox(height: 16),
+                
+                // Política de cancelación
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.indigoSuave,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.principal.withOpacity(0.3),
+                      width: 1.5,
                     ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _mostrarDialogReserva(context);
-                    },
-                    child: const Text('Confirmar'),
                   ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.event_available, 
+                            color: AppColors.principal, 
+                            size: 22,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Cancelación gratuita hasta:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.titulo,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          deadlineFormatted,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.principal,
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 20),
+                      _buildPolicyRow(
+                        Icons.check_circle,
+                        'Antes de esa fecha: Reembolso del 100%',
+                        Color(0xFF059669), // Verde más oscuro
+                      ),
+                      const SizedBox(height: 6),
+                      _buildPolicyRow(
+                        Icons.warning_amber,
+                        'Después de esa fecha: Reembolso del 50%',
+                        AppColors.advertencia,
+                      ),
+                      const SizedBox(height: 6),
+                      _buildPolicyRow(
+                        Icons.cancel,
+                        'Si no te presentas: Sin reembolso',
+                        AppColors.error,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Podrás consultar esta información en "Mis Viajes" en cualquier momento.',
+                  style: TextStyle(fontSize: 12, color: AppColors.subtitulo),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.principal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await confirmarReservaViaje(widget.travel, cantidadPlazas);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error: ${e.toString()}")),
+                    );
+                  }
+                }
+              },
+              child: const Text(
+                'Confirmar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
           ],
-        ),
-      ),
+        );
+      },
     );
+  }
+
+  Widget _buildPolicyRow(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(fontSize: 12, color: color),
+        ),
+      ],
+    );
+  }
+
+  String _formatDateTime(DateTime date) {
+    final days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    final months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    
+    final dayName = days[date.weekday - 1];
+    final day = date.day;
+    final month = months[date.month - 1];
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    
+    return '$dayName $day de $month a las $hour:$minute';
   }
 
   Widget _buildRutaInfoSection(String distancia, String duracion, String equipaje) {
@@ -1016,6 +1590,31 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
 
   /// Muestra el diálogo de confirmación para cancelar desde detalle
   void _showCancelDialog() {
+    // Calcular información de reembolso
+    final now = DateTime.now();
+    final travelDateTime = DateTime(
+      widget.travel.fechaViaje.year,
+      widget.travel.fechaViaje.month,
+      widget.travel.fechaViaje.day,
+      widget.travel.horaViaje.hour,
+      widget.travel.horaViaje.minute,
+    );
+    
+    final hoursUntilTravel = travelDateTime.difference(now).inHours;
+    
+    int freeCancellationHours;
+    if (hoursUntilTravel >= 168) {
+      freeCancellationHours = 48;
+    } else if (hoursUntilTravel >= 48 && hoursUntilTravel < 168) {
+      freeCancellationHours = 24;
+    } else {
+      freeCancellationHours = 1;
+    }
+    
+    final deadlineDate = travelDateTime.subtract(Duration(hours: freeCancellationHours));
+    final canCancelFree = now.isBefore(deadlineDate);
+    final refundPercentage = canCancelFree ? 100 : 50;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1031,41 +1630,101 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
               child: const Icon(Icons.warning_amber, color: AppColors.error, size: 24),
             ),
             const SizedBox(width: 12),
-            const Text('Cancelar reserva'),
+            const Expanded(child: Text('Cancelar reserva')),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '¿Estás seguro que deseas cancelar tu reserva?',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.gris50,
-                borderRadius: BorderRadius.circular(8),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '¿Estás seguro que deseas cancelar tu reserva?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, size: 20, color: AppColors.subtitulo),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Se liberarán $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.subtitulo,
+              const SizedBox(height: 16),
+              
+              // Info de asientos
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.gris50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event_seat, size: 20, color: AppColors.subtitulo),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Se liberarán $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.subtitulo,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              
+              const SizedBox(height: 12),
+              
+              // Info de reembolso
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: canCancelFree 
+                      ? Color(0xFFECFDF5)
+                      : Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: canCancelFree 
+                        ? Color(0xFF059669)
+                        : AppColors.advertencia,
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          canCancelFree ? Icons.check_circle : Icons.warning_amber,
+                          color: canCancelFree 
+                              ? Color(0xFF059669)
+                              : AppColors.advertencia,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Reembolso: $refundPercentage%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: AppColors.titulo,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (!canCancelFree) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ya pasó el plazo de cancelación gratuita. Recibirás el 50% del valor.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.subtitulo,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1080,6 +1739,9 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Sí, cancelar'),
           ),
