@@ -3,11 +3,10 @@ import '../utils/app_colors.dart';
 import '../models/travel_model.dart';
 import '../widgets/route_map_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/travel_booking_service.dart';
 import 'historial_viajes_screen.dart';
 import 'driver_profile_screen.dart';
-
+import 'payments/card_payment_screen.dart';
 
 class DetalleViajeScreen extends StatefulWidget {
   final Travel travel;
@@ -49,7 +48,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
 
       // Obtener detalles de la reserva si existe
       if (hasReservation) {
-        final reservationDetails = await TravelBookingService.getUserReservationDetails(
+        final reservationDetails =
+            await TravelBookingService.getUserReservationDetails(
           travelId: widget.travel.id!,
           userId: user.uid,
         );
@@ -120,7 +120,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: AppColors.gris50,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(32)),
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -136,15 +137,18 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                           // Banner de reserva existente
                           if (_hasReservation) _buildReservationBanner(),
 
-                          _buildConductorSection(conductorNombre, conductorApellido),
+                          _buildConductorSection(
+                              conductorNombre, conductorApellido),
                           const SizedBox(height: 20),
                           _buildRutaSection(origen, destino),
                           const SizedBox(height: 20),
                           _buildFechaHoraSection(fechaViaje, horaViaje),
                           const SizedBox(height: 20),
-                          _buildDetallesSection(plazasDisponibles, vehiculoPlaca),
+                          _buildDetallesSection(
+                              plazasDisponibles, vehiculoPlaca),
                           const SizedBox(height: 20),
-                          _buildRutaInfoSection(distanciaTexto, duracionTexto, tipoEquipaje),
+                          _buildRutaInfoSection(
+                              distanciaTexto, duracionTexto, tipoEquipaje),
                           const SizedBox(height: 20),
                           RouteMapWidget(
                             travel: travel,
@@ -278,7 +282,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.principal.withOpacity(0.3), width: 2),
+        border:
+            Border.all(color: AppColors.principal.withOpacity(0.3), width: 2),
       ),
       child: Row(
         children: [
@@ -288,7 +293,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
               color: AppColors.principal,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
+            child:
+                const Icon(Icons.check_circle, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -537,7 +543,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                 children: [
                   TextButton.icon(
                     onPressed: () => _contactarConductor(nombre),
-                    icon: const Icon(Icons.message, size: 18, color: AppColors.principal),
+                    icon: const Icon(Icons.message,
+                        size: 18, color: AppColors.principal),
                     label: const Text('Contactar'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.principal,
@@ -741,11 +748,11 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
   }
 
   /// Botón de reservar viaje (normal)
-  Widget _buildReserveButton(BuildContext context, int precio, bool disponible) {
+  Widget _buildReserveButton(
+      BuildContext context, int precio, bool disponible) {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
-        backgroundColor:
-        disponible ? AppColors.principal : AppColors.gris400,
+        backgroundColor: disponible ? AppColors.principal : AppColors.gris400,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 50),
         shape: RoundedRectangleBorder(
@@ -792,79 +799,186 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
   }
 
   void _reservarViaje(BuildContext context, int precio) {
+    // Mostrar diálogo para seleccionar cantidad de asientos
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.gris300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Icon(
-              Icons.info_outline,
-              size: 48,
-              color: AppColors.principal,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Confirmar reserva',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.titulo,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Total a pagar: \$${precio.toString()}',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.subtitulo,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.principal,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _mostrarDialogReserva(context);
-                    },
-                    child: const Text('Confirmar'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+      builder: (context) => _buildSeatsSelectionSheet(context, precio),
     );
   }
 
-  Widget _buildRutaInfoSection(String distancia, String duracion, String equipaje) {
+  Widget _buildSeatsSelectionSheet(BuildContext context, int precio) {
+    int cantidadPlazas = 1;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        final totalAmount = precio * cantidadPlazas;
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.gris300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Icon(
+                Icons.airline_seat_recline_normal,
+                size: 48,
+                color: AppColors.principal,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Selecciona cantidad de asientos',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.titulo,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline, size: 32),
+                    color: cantidadPlazas > 1
+                        ? AppColors.principal
+                        : AppColors.gris400,
+                    onPressed: () {
+                      if (cantidadPlazas > 1) {
+                        setState(() => cantidadPlazas--);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.principal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$cantidadPlazas',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.principal,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 32),
+                    color: cantidadPlazas < widget.travel.plazasDisponibles
+                        ? AppColors.principal
+                        : AppColors.gris400,
+                    onPressed: () {
+                      if (cantidadPlazas < widget.travel.plazasDisponibles) {
+                        setState(() => cantidadPlazas++);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.gris50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total a pagar:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.titulo,
+                      ),
+                    ),
+                    Text(
+                      '\$$totalAmount',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.principal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.principal,
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      icon: const Icon(Icons.payment),
+                      label: const Text('Continuar al pago'),
+                      onPressed: () async {
+                        // Guardar el contexto de navegación antes de cerrar el modal
+                        final navigatorContext = Navigator.of(context);
+
+                        // Cerrar el modal
+                        navigatorContext.pop();
+
+                        // Esperar un frame para asegurar que el modal se cerró
+                        await Future.delayed(const Duration(milliseconds: 100));
+
+                        // Navegar a la pantalla de pago usando el contexto correcto
+                        if (!mounted) return;
+                        Navigator.push(
+                          this.context,
+                          MaterialPageRoute(
+                            builder: (context) => CardPaymentScreen(
+                              travel: widget.travel,
+                              seatsReserved: cantidadPlazas,
+                              totalAmount: totalAmount.toDouble(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRutaInfoSection(
+      String distancia, String duracion, String equipaje) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -913,107 +1027,6 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     );
   }
 
-  Future<void> confirmarReservaViaje(Travel travel, int cantidadPlazas) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final viajeRef = FirebaseFirestore.instance.collection('travels').doc(travel.id);
-
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final snapshot = await transaction.get(viajeRef);
-
-      if (!snapshot.exists) throw Exception("El viaje no existe");
-      final data = snapshot.data()!;
-
-      int plazasDisponibles = data['plazasDisponibles'];
-      if (plazasDisponibles < cantidadPlazas) {
-        throw Exception("No hay suficientes plazas disponibles");
-      }
-
-      List usuarios = List.from(data['usuarios'] ?? []);
-      usuarios.add({
-        'id': user.uid,
-        'plazas': cantidadPlazas,
-      });
-
-      transaction.update(viajeRef, {
-        'usuarios': usuarios,
-        'plazasDisponibles': plazasDisponibles - cantidadPlazas,
-      });
-    });
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Reserva confirmada ✅")),
-      );
-
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HistorialViajesScreen()),
-      );
-    }
-  }
-
-  void _mostrarDialogReserva(BuildContext context) {
-    int cantidadPlazas = 1;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Confirmar reserva"),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Selecciona cuántas plazas deseas reservar:"),
-                  SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.remove),
-                        onPressed: () {
-                          if (cantidadPlazas > 1) {
-                            setState(() => cantidadPlazas--);
-                          }
-                        },
-                      ),
-                      Text('$cantidadPlazas', style: TextStyle(fontSize: 20)),
-                      IconButton(
-                        icon: Icon(Icons.add),
-                        onPressed: () {
-                          if (cantidadPlazas < widget.travel.plazasDisponibles) {
-                            setState(() => cantidadPlazas++);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              child: Text("Cancelar"),
-              onPressed: () => Navigator.pop(context),
-            ),
-            ElevatedButton(
-              child: Text("Confirmar"),
-              onPressed: () async {
-                Navigator.pop(context);
-                await confirmarReservaViaje(widget.travel, cantidadPlazas);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   /// Muestra el diálogo de confirmación para cancelar desde detalle
   void _showCancelDialog() {
     showDialog(
@@ -1028,7 +1041,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                 color: AppColors.error.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.warning_amber, color: AppColors.error, size: 24),
+              child: const Icon(Icons.warning_amber,
+                  color: AppColors.error, size: 24),
             ),
             const SizedBox(width: 12),
             const Text('Cancelar reserva'),
@@ -1051,7 +1065,8 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 20, color: AppColors.subtitulo),
+                  const Icon(Icons.info_outline,
+                      size: 20, color: AppColors.subtitulo),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
