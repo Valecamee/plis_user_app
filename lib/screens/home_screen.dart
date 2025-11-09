@@ -6,10 +6,10 @@ import '../services/travel_query_service.dart';
 import '../models/travel_model.dart';
 import 'detalle_viaje_screen.dart';
 import 'historial_viajes_screen.dart';
-import "../../widgets/search/advanced_search_widget.dart";
+import '../widgets/search/advanced_search_widget.dart';
 import '../widgets/search/busqueda_resultados_widget.dart';
-import '../../widgets/common/travel_card.dart';
-import '../widgets/home/proximos_viajes_widget.dart'; // ✅ NUEVO IMPORT
+import '../widgets/common/travel_card.dart';
+import '../widgets/home/proximos_viajes_widget.dart';
 
 
 class HomeScreen extends StatefulWidget {
