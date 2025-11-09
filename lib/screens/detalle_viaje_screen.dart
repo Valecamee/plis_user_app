@@ -3,6 +3,7 @@ import '../utils/app_colors.dart';
 import '../models/travel_model.dart';
 import '../widgets/route_map_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/travel_booking_service.dart';
 import 'historial_viajes_screen.dart';
 import 'driver_profile_screen.dart';
@@ -1455,14 +1456,16 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
               ),
               onPressed: () async {
                 Navigator.pop(context);
-                try {
-                  await confirmarReservaViaje(widget.travel, cantidadPlazas);
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Error: ${e.toString()}")),
-                    );
-                  }
+                
+                // TODO: Integrar con sistema de pagos del compañero
+                // Por ahora solo mostramos que la política fue aceptada
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Política de cancelación aceptada. Próximamente: integración con pagos'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
                 }
               },
               child: const Text(
