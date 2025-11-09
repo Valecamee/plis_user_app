@@ -17,12 +17,19 @@ class BusquedaResultadosWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double maxHeight = MediaQuery.of(context).size.height * 0.65;
-    // 👆 el widget ocupará máximo el 60% de la pantalla (ajustable)
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final topPadding = mediaQuery.padding.top;
+    final bottomPadding = mediaQuery.padding.bottom;
+    
+    // Altura máxima: 55% del espacio disponible
+    final maxHeight = (screenHeight - topPadding - bottomPadding) * 0.55;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      constraints: BoxConstraints(
+        maxHeight: maxHeight,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -36,39 +43,45 @@ class BusquedaResultadosWidget extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Título + botón cerrar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Resultados de la búsqueda',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.titulo,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Resultados de la búsqueda',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.titulo,
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: AppColors.gris400),
-                onPressed: onClose,
-              ),
-            ],
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.gris400),
+                  onPressed: onClose,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
 
           // Resultados con scroll
           if (travels.isEmpty)
-            const Center(
-              child: Text(
-                'No se encontraron viajes',
-                style: TextStyle(color: AppColors.subtitulo),
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(
+                child: Text(
+                  'No se encontraron viajes',
+                  style: TextStyle(color: AppColors.subtitulo),
+                ),
               ),
             )
           else
-            SizedBox(
-              height: maxHeight,
+            Expanded(
               child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: travels.length,
                 itemBuilder: (context, index) {
                   final viaje = travels[index];
