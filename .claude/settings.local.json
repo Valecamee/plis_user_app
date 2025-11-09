@@ -5,7 +5,8 @@
       "Bash(flutter run:*)",
       "Bash(dir:*)",
       "Bash(flutter pub:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(flutter doctor:*)"
     ],
     "deny": [],
     "ask": []
