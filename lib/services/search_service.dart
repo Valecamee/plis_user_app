@@ -129,57 +129,6 @@ class SearchService {
 
   // ============== BÚSQUEDAS Y FILTROS ==============
 
-  /// Realiza una búsqueda avanzada con múltiples filtros
-  static Future<List<Travel>> searchTravels({
-    String? origen,
-    String? destino,
-    double? precioMaximo,
-    DateTime? fecha,
-    TimeOfDay? horaMinima,
-    TimeOfDay? horaMaxima,
-    int? asientosMinimos,
-  }) async {
-    try {
-      // Construir query base
-      Query query = _firestore
-          .collection(_collectionName)
-          .where('estado', isEqualTo: 'programado')
-          .where('plazasDisponibles', isGreaterThan: 0);
-
-      // Filtrar por fecha si se especifica
-      if (fecha != null) {
-        DateTime fechaInicio = DateTime(fecha.year, fecha.month, fecha.day);
-        DateTime fechaFin = fechaInicio.add(const Duration(days: 1));
-        query = query
-            .where('fechaViaje', isGreaterThanOrEqualTo: Timestamp.fromDate(fechaInicio))
-            .where('fechaViaje', isLessThan: Timestamp.fromDate(fechaFin));
-      }
-
-      // Obtener resultados
-      QuerySnapshot querySnapshot = await query.get();
-
-      // Convertir documentos a objetos Travel
-      List<Travel> travels = querySnapshot.docs
-          .map((doc) => Travel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-          .toList();
-
-      // Aplicar filtros locales (Firestore no soporta todos los filtros nativamente)
-      travels = _applyLocalFilters(
-        travels,
-        origen: origen,
-        destino: destino,
-        precioMaximo: precioMaximo,
-        horaMinima: horaMinima,
-        horaMaxima: horaMaxima,
-        asientosMinimos: asientosMinimos,
-      );
-
-      return travels;
-    } catch (e) {
-      throw Exception('Error en búsqueda: $e');
-    }
-  }
-
   /// Busca viajes por texto en origen o destino (búsqueda parcial).
   ///
   /// [searchText] - Texto a buscar.
@@ -213,72 +162,102 @@ class SearchService {
     return searchByText(searchText);
   }
 
-  /// Búsqueda avanzada con múltiples filtros y scoring.
+  /// Búsqueda avanzada con múltiples filtros opcionales.
   ///
   /// [query] - Texto de búsqueda general.
-  /// [filters] - Mapa con filtros adicionales (origen, destino, fecha, precio, etc).
-  /// Retorna: Future<List<Travel>> ordenados por relevancia.
+  /// [filters] - Mapa con filtros adicionales (origen, destino, fecha, hora, asientos).
+  /// Si no se proporcionan filtros, retorna TODOS los viajes disponibles.
+  /// Retorna: Future<List<Travel>> filtrados según los criterios opcionales.
   static Future<List<Travel>> advancedSearch({
     required String query,
     required Map<String, dynamic> filters,
   }) async {
-    final snapshot = await _firestore.collection(_collectionName).get();
-    final allTravels = snapshot.docs
-        .map((doc) => Travel.fromMap(doc.data(), doc.id))
-        .toList();
+    try {
+      // Obtener todos los viajes disponibles (con índice en Firebase)
+      final snapshot = await _firestore
+          .collection(_collectionName)
+          .where('estado', isEqualTo: 'programado')
+          .where('plazasDisponibles', isGreaterThan: 0)
+          .get();
 
-    // Filtros del widget
-    final String? origen = filters['origen'];
-    final String? destino = filters['destino'];
-    final DateTime? fechaViaje = filters['fechaViaje'];
-    final double? precio = filters['precio'];
-    final int? plazasTotales = filters['plazasTotales'];
+      List<Travel> travels = snapshot.docs
+          .map((doc) => Travel.fromMap(doc.data(), doc.id))
+          .toList();
 
-    // Lógica de coincidencia ponderada con búsqueda flexible
-    final filtered = allTravels.where((travel) {
-      double score = 0;
-
-      if (origen != null && TextUtils.containsIgnoreCaseAndAccents(travel.origen, origen)) {
-        score += 2;
+      // Si no hay filtros ni búsqueda, retornar todos los viajes
+      if (query.isEmpty && filters.isEmpty) {
+        return travels;
       }
 
-      if (destino != null && TextUtils.containsIgnoreCaseAndAccents(travel.destino, destino)) {
-        score += 2;
-      }
+      // Extraer filtros opcionales
+      final String? origen = filters['origen'];
+      final String? destino = filters['destino'];
+      final DateTime? fechaViaje = filters['fecha'];
+      final TimeOfDay? horaMinima = filters['horaMinima'];
+      final TimeOfDay? horaMaxima = filters['horaMaxima'];
+      final int? asientosMinimos = filters['asientosMinimos'];
 
-      if (fechaViaje != null &&
-          (travel.fechaViaje.year == fechaViaje.year &&
-              travel.fechaViaje.month == fechaViaje.month &&
-              travel.fechaViaje.day == fechaViaje.day)) {
-        score += 1.5;
-      }
+      // Aplicar filtros locales (solo si están presentes)
+      travels = travels.where((travel) {
+        // Filtro de texto general (búsqueda en origen y destino)
+        if (query.isNotEmpty) {
+          if (!TextUtils.containsIgnoreCaseAndAccents(travel.origen, query) &&
+              !TextUtils.containsIgnoreCaseAndAccents(travel.destino, query)) {
+            return false;
+          }
+        }
 
-      if (precio != null && travel.precio != null && travel.precio! <= precio) {
-        score += 1;
-      }
+        // Filtro de origen específico
+        if (origen != null && origen.isNotEmpty) {
+          if (!TextUtils.containsIgnoreCaseAndAccents(travel.origen, origen)) {
+            return false;
+          }
+        }
 
-      if (plazasTotales != null && travel.plazasDisponibles >= plazasTotales) {
-        score += 1;
-      }
+        // Filtro de destino específico
+        if (destino != null && destino.isNotEmpty) {
+          if (!TextUtils.containsIgnoreCaseAndAccents(travel.destino, destino)) {
+            return false;
+          }
+        }
 
-      // Si coincide con el query general (texto libre) con búsqueda flexible
-      if (query.isNotEmpty &&
-          (TextUtils.containsIgnoreCaseAndAccents(travel.origen, query) ||
-              TextUtils.containsIgnoreCaseAndAccents(travel.destino, query))) {
-        score += 2;
-      }
+        // Filtro de fecha exacta
+        if (fechaViaje != null) {
+          if (travel.fechaViaje.year != fechaViaje.year ||
+              travel.fechaViaje.month != fechaViaje.month ||
+              travel.fechaViaje.day != fechaViaje.day) {
+            return false;
+          }
+        }
 
-      return score > 0;
-    }).toList();
+        // Filtro de hora mínima (el viaje debe salir después o a esa hora)
+        if (horaMinima != null) {
+          if (!_isTimeAfterOrEqual(travel.horaViaje, horaMinima)) {
+            return false;
+          }
+        }
 
-    // Ordenar por puntuación
-    filtered.sort((a, b) {
-      double scoreA = _calculateMatchScore(a, query, filters);
-      double scoreB = _calculateMatchScore(b, query, filters);
-      return scoreB.compareTo(scoreA);
-    });
+        // Filtro de hora máxima (el viaje debe salir antes o a esa hora)
+        if (horaMaxima != null) {
+          if (!_isTimeBeforeOrEqual(travel.horaViaje, horaMaxima)) {
+            return false;
+          }
+        }
 
-    return filtered;
+        // Filtro de asientos mínimos disponibles
+        if (asientosMinimos != null && asientosMinimos > 0) {
+          if (travel.plazasDisponibles < asientosMinimos) {
+            return false;
+          }
+        }
+
+        return true;
+      }).toList();
+
+      return travels;
+    } catch (e) {
+      throw Exception('Error en búsqueda avanzada: $e');
+    }
   }
 
   // ============== MÉTODOS AUXILIARES ==============
@@ -339,90 +318,6 @@ class SearchService {
   }
 
   // ============== MÉTODOS PRIVADOS ==============
-
-  /// Aplica filtros que no se pueden hacer en Firestore directamente
-  static List<Travel> _applyLocalFilters(
-      List<Travel> travels, {
-        String? origen,
-        String? destino,
-        double? precioMaximo,
-        TimeOfDay? horaMinima,
-        TimeOfDay? horaMaxima,
-        int? asientosMinimos,
-      }) {
-    return travels.where((travel) {
-      // Filtro de origen (búsqueda flexible)
-      if (origen != null && origen.isNotEmpty) {
-        if (!TextUtils.containsIgnoreCaseAndAccents(travel.origen, origen)) {
-          return false;
-        }
-      }
-
-      // Filtro de destino (búsqueda flexible)
-      if (destino != null && destino.isNotEmpty) {
-        if (!TextUtils.containsIgnoreCaseAndAccents(travel.destino, destino)) {
-          return false;
-        }
-      }
-
-      // Filtro de precio máximo
-      if (precioMaximo != null) {
-        if (travel.precioPorAsiento == null || travel.precioPorAsiento! > precioMaximo) {
-          return false;
-        }
-      }
-
-      // Filtro de hora mínima
-      if (horaMinima != null) {
-        if (!_isTimeAfterOrEqual(travel.horaViaje, horaMinima)) {
-          return false;
-        }
-      }
-
-      // Filtro de hora máxima
-      if (horaMaxima != null) {
-        if (!_isTimeBeforeOrEqual(travel.horaViaje, horaMaxima)) {
-          return false;
-        }
-      }
-
-      // Filtro de asientos mínimos
-      if (asientosMinimos != null) {
-        if (travel.plazasDisponibles < asientosMinimos) {
-          return false;
-        }
-      }
-
-      return true;
-    }).toList();
-  }
-
-  /// Calcula el score de coincidencia para ordenar resultados.
-  static double _calculateMatchScore(
-      Travel travel, String query, Map<String, dynamic> filters) {
-    double score = 0;
-
-    final String? origen = filters['origen'];
-    final String? destino = filters['destino'];
-    final DateTime? fechaViaje = filters['fechaViaje'];
-    final double? precio = filters['precio'];
-    final int? plazasTotales = filters['plazasTotales'];
-
-    if (origen != null && TextUtils.containsIgnoreCaseAndAccents(travel.origen, origen)) score += 2;
-    if (destino != null && TextUtils.containsIgnoreCaseAndAccents(travel.destino, destino)) score += 2;
-    if (fechaViaje != null &&
-        (travel.fechaViaje.year == fechaViaje.year &&
-            travel.fechaViaje.month == fechaViaje.month &&
-            travel.fechaViaje.day == fechaViaje.day)) score += 1.5;
-    if (precio != null && travel.precio != null && travel.precio! <= precio) score += 1;
-    if (plazasTotales != null && travel.plazasTotales >= plazasTotales) score += 1;
-
-    if (query.isNotEmpty &&
-        (TextUtils.containsIgnoreCaseAndAccents(travel.origen, query) ||
-            TextUtils.containsIgnoreCaseAndAccents(travel.destino, query))) score += 2;
-
-    return score;
-  }
 
   /// Compara si una hora es después o igual a otra
   static bool _isTimeAfterOrEqual(TimeOfDay time1, TimeOfDay time2) {

@@ -28,7 +28,6 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
   // Filtros
   String? _selectedOrigen;
   String? _selectedDestino;
-  double? _precioMaximo;
   DateTime? _selectedFecha;
   TimeOfDay? _horaMinima;
   TimeOfDay? _horaMaxima;
@@ -37,8 +36,6 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
   // Datos para dropdowns
   List<String> _origenes = [];
   List<String> _destinos = [];
-  double _minPrice = 0;
-  double _maxPrice = 100000;
 
   bool _isLoadingData = false;
 
@@ -61,16 +58,11 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
       final results = await Future.wait([
         SearchService.getAvailableOrigins(),
         SearchService.getAvailableDestinations(),
-        SearchService.getPriceRange(),
       ]);
       setState(() {
         // Limpiar y extraer solo nombres de ciudades
         _origenes = _cleanCityNames(results[0] as List<String>);
         _destinos = _cleanCityNames(results[1] as List<String>);
-        final priceRange = results[2] as Map<String, double>;
-        _minPrice = priceRange['min']!;
-        _maxPrice = priceRange['max']!;
-        _precioMaximo = _maxPrice;
         _isLoadingData = false;
       });
     } catch (e) {
@@ -137,7 +129,6 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
         if (_searchController.text.isNotEmpty) filters['searchText'] = _searchController.text;
         if (_selectedOrigen != null) filters['origen'] = _selectedOrigen;
         if (_selectedDestino != null) filters['destino'] = _selectedDestino;
-        if (_precioMaximo != null && _precioMaximo! < _maxPrice) filters['precioMaximo'] = _precioMaximo;
         if (_selectedFecha != null) filters['fecha'] = _selectedFecha;
         if (_horaMinima != null) filters['horaMinima'] = _horaMinima;
         if (_horaMaxima != null) filters['horaMaxima'] = _horaMaxima;
@@ -154,7 +145,6 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
       _searchController.clear();
       _selectedOrigen = null;
       _selectedDestino = null;
-      _precioMaximo = _maxPrice;
       _selectedFecha = null;
       _horaMinima = null;
       _horaMaxima = null;
@@ -163,7 +153,7 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
     if (widget.onClear != null) widget.onClear!();
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _selectDate(StateSetter setModalState) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedFecha ?? DateTime.now(),
@@ -178,10 +168,13 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
         );
       },
     );
-    if (picked != null) setState(() => _selectedFecha = picked);
+    if (picked != null) {
+      setState(() => _selectedFecha = picked);
+      setModalState(() => _selectedFecha = picked);
+    }
   }
 
-  Future<void> _selectTime(bool isMinima) async {
+  Future<void> _selectTime(bool isMinima, StateSetter setModalState) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: isMinima
@@ -198,6 +191,10 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
     );
     if (picked != null) {
       setState(() {
+        if (isMinima) _horaMinima = picked;
+        else _horaMaxima = picked;
+      });
+      setModalState(() {
         if (isMinima) _horaMinima = picked;
         else _horaMaxima = picked;
       });
@@ -262,95 +259,99 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
   }
 
   Widget _buildFiltersModal(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            children: [
-              // Handle del modal
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.gris300,
-                  borderRadius: BorderRadius.circular(2),
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setModalState) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Filtros avanzados',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.titulo,
-                      ),
+              child: Column(
+                children: [
+                  // Handle del modal
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.gris300,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              // Contenido con scroll
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  children: [
-
-                        // Origen y Destino
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AutocompleteField(
-                                label: 'Origen',
-                                hint: 'Seleccionar origen',
-                                icon: Icons.radio_button_checked,
-                                options: _origenes,
-                                initialValue: _selectedOrigen,
-                                onChanged: (value) => setState(() => _selectedOrigen = value),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: AutocompleteField(
-                                label: 'Destino',
-                                hint: 'Seleccionar destino',
-                                icon: Icons.location_on,
-                                options: _destinos,
-                                initialValue: _selectedDestino,
-                                onChanged: (value) => setState(() => _selectedDestino = value),
-                              ),
-                            ),
-                          ],
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Filtros avanzados',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.titulo,
+                          ),
                         ),
-                        const SizedBox(height: 12),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Contenido con scroll
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(20),
+                      children: [
 
-                        // Fecha
-                        _buildDateSelector(),
-                        const SizedBox(height: 12),
+                            // Origen y Destino
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AutocompleteField(
+                                    label: 'Origen',
+                                    hint: 'Seleccionar origen',
+                                    icon: Icons.radio_button_checked,
+                                    options: _origenes,
+                                    initialValue: _selectedOrigen,
+                                    onChanged: (value) {
+                                      setState(() => _selectedOrigen = value);
+                                      setModalState(() => _selectedOrigen = value);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AutocompleteField(
+                                    label: 'Destino',
+                                    hint: 'Seleccionar destino',
+                                    icon: Icons.location_on,
+                                    options: _destinos,
+                                    initialValue: _selectedDestino,
+                                    onChanged: (value) {
+                                      setState(() => _selectedDestino = value);
+                                      setModalState(() => _selectedDestino = value);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
 
-                        // Precio máximo
-                        _buildPriceSlider(),
-                        const SizedBox(height: 12),
+                            // Fecha
+                            _buildDateSelector(setModalState),
+                            const SizedBox(height: 12),
 
                         // Hora mínima y máxima
                         Row(
@@ -359,7 +360,7 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                               child: _buildTimeSelector(
                                 label: 'Hora desde',
                                 time: _horaMinima,
-                                onTap: () => _selectTime(true),
+                                onTap: () => _selectTime(true, setModalState),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -367,7 +368,7 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                               child: _buildTimeSelector(
                                 label: 'Hora hasta',
                                 time: _horaMaxima,
-                                onTap: () => _selectTime(false),
+                                onTap: () => _selectTime(false, setModalState),
                               ),
                             ),
                           ],
@@ -375,14 +376,14 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                         const SizedBox(height: 12),
 
                         // Asientos mínimos
-                        _buildSeatsSelector(),
-                        const SizedBox(height: 80), // Espacio para el botón fijo
+                        _buildSeatsSelector(setModalState),
+                        const SizedBox(height: 100), // Espacio para el botón fijo
                       ],
                     ),
                   ),
                   // Botones fijos en la parte inferior
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       boxShadow: [
@@ -398,8 +399,23 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              _clearFilters();
-                              Navigator.pop(context);
+                              setState(() {
+                                _selectedOrigen = null;
+                                _selectedDestino = null;
+                                _selectedFecha = null;
+                                _horaMinima = null;
+                                _horaMaxima = null;
+                                _asientosMinimos = null;
+                              });
+                              setModalState(() {
+                                _selectedOrigen = null;
+                                _selectedDestino = null;
+                                _selectedFecha = null;
+                                _horaMinima = null;
+                                _horaMaxima = null;
+                                _asientosMinimos = null;
+                              });
+                              if (widget.onClear != null) widget.onClear!();
                             },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -449,11 +465,13 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                 ],
               ),
             );
+          },
+        );
       },
     );
   }
 
-  Widget _buildDateSelector() {
+  Widget _buildDateSelector(StateSetter setModalState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -463,7 +481,7 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
         ),
         const SizedBox(height: 8),
         InkWell(
-          onTap: _selectDate,
+          onTap: () => _selectDate(setModalState),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
@@ -483,38 +501,15 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
                 const Spacer(),
                 if (_selectedFecha != null)
                   GestureDetector(
-                    onTap: () => setState(() => _selectedFecha = null),
+                    onTap: () {
+                      setState(() => _selectedFecha = null);
+                      setModalState(() => _selectedFecha = null);
+                    },
                     child: const Icon(Icons.close, size: 18, color: AppColors.gris400),
                   ),
               ],
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPriceSlider() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Precio máximo', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo)),
-            Text(
-              '\$${_precioMaximo?.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.principal),
-            ),
-          ],
-        ),
-        Slider(
-          value: _precioMaximo ?? _maxPrice,
-          min: _minPrice,
-          max: _maxPrice,
-          divisions: 20,
-          activeColor: AppColors.principal,
-          onChanged: (value) => setState(() => _precioMaximo = value),
         ),
       ],
     );
@@ -554,21 +549,24 @@ class _AdvancedSearchWidgetState extends State<AdvancedSearchWidget> {
     );
   }
 
-  Widget _buildSeatsSelector() {
+  Widget _buildSeatsSelector(StateSetter setModalState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Asientos mínimos necesarios', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.titulo)),
         const SizedBox(height: 8),
         Row(
-          children: List.generate(4, (index) {
+          children: List.generate(3, (index) {
             final seats = index + 1;
             final isSelected = _asientosMinimos == seats;
             return Expanded(
               child: Padding(
-                padding: EdgeInsets.only(right: index < 3 ? 8 : 0),
+                padding: EdgeInsets.only(right: index < 2 ? 8 : 0),
                 child: InkWell(
-                  onTap: () => setState(() => _asientosMinimos = isSelected ? null : seats),
+                  onTap: () {
+                    setState(() => _asientosMinimos = isSelected ? null : seats);
+                    setModalState(() => _asientosMinimos = isSelected ? null : seats);
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
