@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../services/auth_service.dart';
-import '../services/travel_query_service.dart';
+import '../services/search_service.dart';
 import '../models/travel_model.dart';
 import 'detalle_viaje_screen.dart';
 import 'historial_viajes_screen.dart';
@@ -118,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     : AdvancedSearchWidget(
                   onSearch: (query, filters) async {
                     try {
-                      final results = await TravelQueryService.advancedSearch(
+                      final results = await SearchService.advancedSearch(
                         query: query,
                         filters: filters,
                       );
@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // Lista de viajes disponibles desde Firestore (colección 'travels')
                         StreamBuilder<List<Travel>>(
-                          stream: TravelQueryService.getAvailableTravelsStream(limit: 4),
+                          stream: SearchService.getAvailableTravelsStream(limit: 4),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
