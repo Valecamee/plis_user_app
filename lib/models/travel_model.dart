@@ -131,37 +131,44 @@ class Travel {
   }
 
   /// Convierte un string en un objeto [TimeOfDay].
+  /// Soporta formatos: "HH:mm" (24h) o "h:mm AM/PM" (12h)
   static TimeOfDay _parseTimeOfDay(String timeString) {
     try {
-      // Manejar diferentes formatos de hora
-      if (timeString.contains('PM') || timeString.contains('AM')) {
-        // Formato: "2:30 PM" o "02:30 PM"
-        final isPM = timeString.contains('PM');
-        final cleanTime = timeString.replaceAll('PM', '').replaceAll('AM', '').trim();
-        final parts = cleanTime.split(':');
-
-        int hour = int.parse(parts[0]);
-        int minute = parts.length > 1 ? int.parse(parts[1]) : 0;
-
-        // Convertir a formato 24 horas
-        if (isPM && hour != 12) {
-          hour += 12;
-        } else if (!isPM && hour == 12) {
-          hour = 0;
-        }
-
-        return TimeOfDay(hour: hour, minute: minute);
-      } else {
-        // Formato 24 horas: "14:30" o "14:30:00"
-        final parts = timeString.split(':');
-        return TimeOfDay(
-          hour: int.parse(parts[0]),
-          minute: int.parse(parts[1]),
-        );
+      // Limpiar espacios
+      timeString = timeString.trim();
+      
+      // Verificar si tiene AM/PM
+      bool isPM = timeString.toUpperCase().contains('PM');
+      bool isAM = timeString.toUpperCase().contains('AM');
+      
+      // Remover AM/PM del string
+      String cleanTime = timeString
+          .replaceAll(RegExp(r'\s*(AM|PM|am|pm)\s*'), '')
+          .trim();
+      
+      // Split por ':'
+      List<String> parts = cleanTime.split(':');
+      
+      if (parts.length != 2) {
+        throw FormatException('Formato de hora inválido: $timeString');
       }
+      
+      int hour = int.parse(parts[0].trim());
+      int minute = int.parse(parts[1].trim());
+      
+      // Convertir a formato 24h si es necesario
+      if (isAM || isPM) {
+        if (isPM && hour != 12) {
+          hour += 12; // 1 PM = 13, 2 PM = 14, etc.
+        } else if (isAM && hour == 12) {
+          hour = 0; // 12 AM = 00:00
+        }
+      }
+      
+      return TimeOfDay(hour: hour, minute: minute);
     } catch (e) {
+      // Si falla, retornar medianoche como valor por defecto
       print('Error parseando hora "$timeString": $e');
-      // Retornar hora por defecto si hay error
       return const TimeOfDay(hour: 0, minute: 0);
     }
   }
