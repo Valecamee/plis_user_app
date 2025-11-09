@@ -277,6 +277,9 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
       widget.travel.horaViaje.minute,
     );
     
+    // 🚨 VALIDACIÓN NO SHOW: Verificar si el viaje ya ocurrió
+    final travelHasPassed = now.isAfter(travelDateTime);
+    
     final hoursUntilTravel = travelDateTime.difference(now).inHours;
     
     int freeCancellationHours;
@@ -297,14 +300,22 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     print('📋 ESTADO DE RESERVA EXISTENTE');
     print('═══════════════════════════════════════');
     print('Ahora: ${now.toString()}');
-    print('Plazo límite: ${deadlineDate.toString()}');
-    print('¿Puede cancelar gratis?: ${canCancelFree ? "SÍ ✅" : "NO ⚠️"}');
-    if (canCancelFree) {
-      final hoursRemaining = deadlineDate.difference(now).inHours;
-      print('Horas restantes para cancelar gratis: $hoursRemaining');
+    print('Fecha/hora del viaje: ${travelDateTime.toString()}');
+    print('🚨 ¿El viaje ya ocurrió?: ${travelHasPassed ? "SÍ - NO SHOW" : "NO"}');
+    if (travelHasPassed) {
+      final hoursSinceTravel = now.difference(travelDateTime).inHours;
+      print('   Horas desde el viaje: $hoursSinceTravel');
+      print('   → ESTADO: NO SHOW - 0% reembolso');
     } else {
-      final hoursLate = now.difference(deadlineDate).inHours;
-      print('Horas después del plazo: $hoursLate → Reembolso 50%');
+      print('Plazo límite: ${deadlineDate.toString()}');
+      print('¿Puede cancelar gratis?: ${canCancelFree ? "SÍ ✅" : "NO ⚠️"}');
+      if (canCancelFree) {
+        final hoursRemaining = deadlineDate.difference(now).inHours;
+        print('Horas restantes para cancelar gratis: $hoursRemaining');
+      } else {
+        final hoursLate = now.difference(deadlineDate).inHours;
+        print('Horas después del plazo: $hoursLate → Reembolso 50%');
+      }
     }
     print('═══════════════════════════════════════\n');
     
@@ -318,38 +329,55 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.principal.withOpacity(0.1),
-                AppColors.secundario.withOpacity(0.1),
+                travelHasPassed 
+                    ? AppColors.error.withOpacity(0.15)
+                    : AppColors.principal.withOpacity(0.1),
+                travelHasPassed 
+                    ? AppColors.error.withOpacity(0.1)
+                    : AppColors.secundario.withOpacity(0.1),
               ],
             ),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.principal.withOpacity(0.3), width: 2),
+            border: Border.all(
+              color: travelHasPassed 
+                  ? AppColors.error.withOpacity(0.5)
+                  : AppColors.principal.withOpacity(0.3), 
+              width: 2,
+            ),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.principal,
+                  color: travelHasPassed ? AppColors.error : AppColors.principal,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
+                child: Icon(
+                  travelHasPassed ? Icons.event_busy : Icons.check_circle, 
+                  color: Colors.white, 
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '¡Ya tienes una reserva!',
-                      style: TextStyle(
+                    Text(
+                      travelHasPassed 
+                          ? 'Viaje realizado'
+                          : '¡Ya tienes una reserva!',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppColors.titulo,
                       ),
                     ),
                     Text(
-                      'Has reservado $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
+                      travelHasPassed
+                          ? 'Este viaje ya se realizó'
+                          : 'Has reservado $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.subtitulo,
@@ -368,14 +396,18 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
           padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: canCancelFree 
-                ? Color(0xFFECFDF5) // Verde muy claro
-                : Color(0xFFFEF3C7), // Amarillo claro
+            color: travelHasPassed
+                ? Color(0xFFFEE2E2) // Rojo muy claro
+                : (canCancelFree 
+                    ? Color(0xFFECFDF5) // Verde muy claro
+                    : Color(0xFFFEF3C7)), // Amarillo claro
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: canCancelFree 
-                  ? Color(0xFF059669)
-                  : AppColors.advertencia,
+              color: travelHasPassed
+                  ? AppColors.error
+                  : (canCancelFree 
+                      ? Color(0xFF059669)
+                      : AppColors.advertencia),
               width: 1.5,
             ),
           ),
@@ -385,18 +417,24 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
               Row(
                 children: [
                   Icon(
-                    canCancelFree ? Icons.event_available : Icons.access_time,
-                    color: canCancelFree 
-                        ? Color(0xFF059669)
-                        : AppColors.advertencia,
+                    travelHasPassed
+                        ? Icons.cancel
+                        : (canCancelFree ? Icons.event_available : Icons.access_time),
+                    color: travelHasPassed
+                        ? AppColors.error
+                        : (canCancelFree 
+                            ? Color(0xFF059669)
+                            : AppColors.advertencia),
                     size: 22,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      canCancelFree 
-                          ? 'Puedes cancelar gratis hasta:'
-                          : 'Cancelación con penalización',
+                      travelHasPassed
+                          ? 'No es posible cancelar'
+                          : (canCancelFree 
+                              ? 'Puedes cancelar gratis hasta:'
+                              : 'Cancelación con penalización'),
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: AppColors.titulo,
@@ -407,26 +445,47 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  deadlineFormatted,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: canCancelFree 
-                        ? Color(0xFF059669)
-                        : AppColors.advertencia,
+              if (!travelHasPassed) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    deadlineFormatted,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: canCancelFree 
+                          ? Color(0xFF059669)
+                          : AppColors.advertencia,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'El viaje ya se realizó - Sin reembolso',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.error,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               const Divider(height: 1),
               const SizedBox(height: 12),
               _buildPolicyRow(
@@ -1600,6 +1659,9 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
       widget.travel.horaViaje.minute,
     );
     
+    // 🚨 VALIDACIÓN NO SHOW: Verificar si el viaje ya ocurrió
+    final travelHasPassed = now.isAfter(travelDateTime);
+    
     final hoursUntilTravel = travelDateTime.difference(now).inHours;
     
     int freeCancellationHours;
@@ -1613,7 +1675,7 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
     
     final deadlineDate = travelDateTime.subtract(Duration(hours: freeCancellationHours));
     final canCancelFree = now.isBefore(deadlineDate);
-    final refundPercentage = canCancelFree ? 100 : 50;
+    final refundPercentage = travelHasPassed ? 0 : (canCancelFree ? 100 : 50);
     
     showDialog(
       context: context,
@@ -1630,7 +1692,11 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
               child: const Icon(Icons.warning_amber, color: AppColors.error, size: 24),
             ),
             const SizedBox(width: 12),
-            const Expanded(child: Text('Cancelar reserva')),
+            Expanded(
+              child: Text(
+                travelHasPassed ? 'No es posible cancelar' : 'Cancelar reserva',
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -1638,50 +1704,57 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '¿Estás seguro que deseas cancelar tu reserva?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              Text(
+                travelHasPassed
+                    ? 'El viaje ya se realizó y no es posible cancelar la reserva.'
+                    : '¿Estás seguro que deseas cancelar tu reserva?',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 16),
               
-              // Info de asientos
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.gris50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.event_seat, size: 20, color: AppColors.subtitulo),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Se liberarán $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.subtitulo,
+              if (!travelHasPassed) ...[
+                // Info de asientos
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.gris50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event_seat, size: 20, color: AppColors.subtitulo),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Se liberarán $_reservedSeats ${_reservedSeats == 1 ? 'asiento' : 'asientos'}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.subtitulo,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
               
               // Info de reembolso
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: canCancelFree 
-                      ? Color(0xFFECFDF5)
-                      : Color(0xFFFEF3C7),
+                  color: travelHasPassed
+                      ? Color(0xFFFEE2E2) // Rojo claro
+                      : (canCancelFree 
+                          ? Color(0xFFECFDF5)
+                          : Color(0xFFFEF3C7)),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: canCancelFree 
-                        ? Color(0xFF059669)
-                        : AppColors.advertencia,
+                    color: travelHasPassed
+                        ? AppColors.error
+                        : (canCancelFree 
+                            ? Color(0xFF059669)
+                            : AppColors.advertencia),
                     width: 1.5,
                   ),
                 ),
@@ -1691,10 +1764,14 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                     Row(
                       children: [
                         Icon(
-                          canCancelFree ? Icons.check_circle : Icons.warning_amber,
-                          color: canCancelFree 
-                              ? Color(0xFF059669)
-                              : AppColors.advertencia,
+                          travelHasPassed 
+                              ? Icons.cancel 
+                              : (canCancelFree ? Icons.check_circle : Icons.warning_amber),
+                          color: travelHasPassed
+                              ? AppColors.error
+                              : (canCancelFree 
+                                  ? Color(0xFF059669)
+                                  : AppColors.advertencia),
                           size: 22,
                         ),
                         const SizedBox(width: 8),
@@ -1710,16 +1787,18 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
                         ),
                       ],
                     ),
-                    if (!canCancelFree) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Ya pasó el plazo de cancelación gratuita. Recibirás el 50% del valor.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.subtitulo,
-                        ),
+                    const SizedBox(height: 8),
+                    Text(
+                      travelHasPassed
+                          ? 'El viaje ya se realizó. No recibirás ningún reembolso.'
+                          : (canCancelFree
+                              ? 'Estás dentro del plazo. Recibirás el reembolso completo.'
+                              : 'Ya pasó el plazo de cancelación gratuita. Recibirás el 50% del valor.'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.subtitulo,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -1729,17 +1808,18 @@ class _DetalleViajeScreenState extends State<DetalleViajeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No, mantener'),
+            child: Text(travelHasPassed ? 'Entendido' : 'No, mantener'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _cancelReservation();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
+          if (!travelHasPassed)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _cancelReservation();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
